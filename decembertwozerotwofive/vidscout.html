@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VidScout — YouTube Recommender</title>
+<style>
+:root{
+  --bg:#0b0f17; --card:#121a27; --text:#e7eefc; --muted:#9bb0d1;
+  --accent:#6aa9ff; --border:rgba(255,255,255,.08); --good:#56d364;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  background:
+    radial-gradient(1200px 600px at 15% -10%, rgba(106,169,255,.22), transparent),
+    radial-gradient(900px 500px at 90% 0%, rgba(147,112,219,.18), transparent),
+    var(--bg);
+  color:var(--text);
+}
+main{max-width:980px;margin:0 auto;padding:26px 16px 40px}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px}
+h1,h2{margin:0 0 10px}
+p{margin:0 0 12px;color:var(--muted)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.input{
+  flex:1; min-width:220px; padding:12px; border-radius:10px;
+  border:1px solid var(--border); background:#0d1320; color:var(--text);
+}
+.btn{
+  background:var(--accent); border:none; border-radius:12px; padding:12px 16px;
+  font-weight:700; cursor:pointer;
+}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
+.btn.small{padding:8px 10px;border-radius:10px;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:860px){ .grid{grid-template-columns:1fr} }
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{
+  border:1px solid var(--border); background:#0d1320; color:var(--text);
+  padding:8px 10px; border-radius:999px; cursor:pointer; font-weight:650;
+}
+.small{font-size:.86rem;color:var(--muted)}
+.kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;background:#0d1320;border:1px solid var(--border);padding:2px 6px;border-radius:8px}
+.list{list-style:none;padding:0;margin:0}
+.list li{padding:10px 0;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+a{color:var(--accent);text-decoration:none}
+.tag{font-size:.78rem;color:var(--muted);border:1px solid var(--border);padding:2px 8px;border-radius:999px}
+.pill{display:inline-flex;gap:8px;align-items:center}
+.score{color:var(--good);font-weight:800}
+.footer{text-align:center;color:var(--muted);font-size:.9rem;margin-top:22px}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<main>
+
+  <section class="panel">
+    <h1>📺 VidScout</h1>
+    <p>You type what you want. VidScout generates smart YouTube searches + quick picks (no API key).</p>
+    <p class="small">Tip: press <span class="kbd">/</span> to focus the box, <span class="kbd">Enter</span> to recommend.</p>
+  </section>
+
+  <section class="panel">
+    <div class="row">
+      <input id="q" class="input" placeholder="e.g., chill Minecraft building with music" />
+      <button id="go" class="btn">Recommend</button>
+      <button id="random" class="btn ghost">Surprise me</button>
+    </div>
+
+    <div class="chips" style="margin-top:10px">
+      <button class="chip" data-seed="funny gaming moments compilation">Funny gaming</button>
+      <button class="chip" data-seed="cozy study with me pomodoro no talking">Study / focus</button>
+      <button class="chip" data-seed="beginner python project tutorial">Learn coding</button>
+      <button class="chip" data-seed="science mysteries explained documentary">Documentary</button>
+      <button class="chip" data-seed="quick dinner recipes under 20 minutes">Food</button>
+      <button class="chip" data-seed="best soccer goalkeeper training drills">Sports</button>
+    </div>
+
+    <div class="row" style="margin-top:12px">
+      <span class="tag">Filters</span>
+      <label class="pill"><input type="checkbox" id="shorts" /> Shorts</label>
+      <label class="pill"><input type="checkbox" id="live" /> Live</label>
+      <label class="pill"><input type="checkbox" id="noTalking" /> No-talking</label>
+      <label class="pill"><input type="checkbox" id="kidSafe" /> Kid-friendly</label>
+      <label class="pill"><input type="checkbox" id="highQuality" checked /> High-quality / “explained”</label>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="grid">
+      <div>
+        <h2>Recommendations</h2>
+        <p class="small">These open YouTube searches tuned to what you typed.</p>
+        <ul id="results" class="list"></ul>
+        <div class="row" style="margin-top:10px">
+          <button id="openAll" class="btn small">Open top 3</button>
+          <button id="copyAll" class="btn small ghost">Copy links</button>
+        </div>
+      </div>
+
+      <div>
+        <h2>Your recent searches</h2>
+        <p class="small">Saved locally in your browser.</p>
+        <ul id="history" class="list"></ul>
+        <div class="row" style="margin-top:10px">
+          <button id="clearHistory" class="btn small ghost">Clear history</button>
+        </div>
+
+        <div style="margin-top:14px">
+          <h2>Quick channels/topics</h2>
+          <p class="small">Handy shortcuts (you can edit later).</p>
+          <div class="chips" id="quickLinks"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    VidScout • Browser-only • Pure HTML/CSS/JS
+  </footer>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+const QUICK = [
+  { label:"Kurzgesagt", q:"Kurzgesagt In a Nutshell" },
+  { label:"Veritasium", q:"Veritasium" },
+  { label:"Mark Rober", q:"Mark Rober" },
+  { label:"Minecraft builds", q:"minecraft build ideas tutorial no commentary" },
+  { label:"Coding projects", q:"beginner coding projects tutorial" },
+  { label:"Study music", q:"lofi study music no talking" },
+  { label:"Sports drills", q:"soccer training drills beginners" },
+  { label:"Funny clips", q:"funny moments compilation" }
+];
+
+const SURPRISE = [
+  "weird science experiments explained",
+  "cozy rainy night ambience no talking",
+  "minecraft survival tips beginner",
+  "satisfying woodworking build",
+  "python automation beginner tutorial",
+  "funny animal compilation clean",
+  "space documentary explained",
+  "best movie scenes breakdown"
+];
+
+function ytUrl(query, opts={}){
+  const url = new URL("https://www.youtube.com/results");
+  url.searchParams.set("search_query", query);
+  if(opts.sp) url.searchParams.set("sp", opts.sp); // optional filter param (we won't overdo it)
+  return url.toString();
+}
+
+function normalize(s){ return (s||"").toLowerCase(); }
+
+function detectTopics(text){
+  const t = normalize(text);
+  const tags = [];
+
+  const rules = [
+    { key:"minecraft", tag:"Minecraft" },
+    { key:"roblox", tag:"Roblox" },
+    { key:"fortnite", tag:"Fortnite" },
+    { key:"coding", tag:"Coding" },
+    { key:"python", tag:"Python" },
+    { key:"javascript", tag:"JavaScript" },
+    { key:"study", tag:"Study" },
+    { key:"lofi", tag:"Lo-fi" },
+    { key:"documentary", tag:"Documentary" },
+    { key:"explained", tag:"Explained" },
+    { key:"soccer", tag:"Soccer" },
+    { key:"goalkeeper", tag:"Goalkeeper" },
+    { key:"recipe", tag:"Food" },
+    { key:"workout", tag:"Fitness" },
+    { key:"anime", tag:"Anime" }
+  ];
+
+  rules.forEach(r => { if(t.includes(r.key)) tags.push(r.tag); });
+
+  // vibe hints
+  if (/(chill|cozy|relax|ambient|rain)/.test(t)) tags.push("Chill");
+  if (/(funny|memes|fails|clips)/.test(t)) tags.push("Funny");
+  if (/(learn|tutorial|beginner|how to)/.test(t)) tags.push("Tutorial");
+  if (/(speedrun|pro|ranked|competitive)/.test(t)) tags.push("Competitive");
+
+  return [...new Set(tags)];
+}
+
+function buildQueries(userText){
+  const base = userText.trim();
+  const tags = detectTopics(base);
+
+  // filters
+  const add = [];
+  if ($("noTalking").checked) add.push("no talking", "no commentary");
+  if ($("kidSafe").checked) add.push("kid friendly", "clean");
+  if ($("highQuality").checked) add.push("explained", "best", "guide");
+
+  const wantsShorts = $("shorts").checked;
+  const wantsLive = $("live").checked;
+
+  const q1 = [base, ...add].join(" ").replace(/\s+/g," ").trim();
+
+  // generate variants that feel "recommended"
+  const variants = [
+    { title:"Best match", query:q1 },
+    { title:"Short & quick", query:(base + " highlights tips").trim() },
+    { title:"Deep dive", query:(base + " explained documentary").trim() },
+    { title:"Beginner-friendly", query:(base + " beginner tutorial").trim() },
+    { title:"Chill version", query:(base + " chill no commentary").trim() },
+    { title:"Funny version", query:(base + " funny moments compilation").trim() },
+  ];
+
+  // apply shorts/live as extra words (simpler + reliable)
+  const final = variants.map(v=>{
+    let q = v.query;
+    if(wantsShorts) q += " shorts";
+    if(wantsLive) q += " live";
+    return { ...v, query:q.trim() };
+  });
+
+  // score based on overlap with detected tags/keywords
+  const scored = final.map(v=>{
+    const t = normalize(v.query);
+    let score = 50;
+    tags.forEach(tag => { if(t.includes(normalize(tag))) score += 6; });
+    if ($("noTalking").checked && /(no talking|no commentary)/.test(t)) score += 8;
+    if ($("kidSafe").checked && /(kid friendly|clean)/.test(t)) score += 8;
+    if ($("highQuality").checked && /(explained|guide|best)/.test(t)) score += 6;
+    return { ...v, score: Math.min(99, score) };
+  }).sort((a,b)=>b.score-a.score);
+
+  return scored;
+}
+
+function loadHistory(){
+  return JSON.parse(localStorage.getItem("vidscout_history") || "[]");
+}
+function saveHistory(arr){
+  localStorage.setItem("vidscout_history", JSON.stringify(arr));
+}
+function pushHistory(q){
+  const hist = loadHistory();
+  const cleaned = q.trim();
+  if(!cleaned) return;
+  const next = [cleaned, ...hist.filter(x=>x !== cleaned)].slice(0,8);
+  saveHistory(next);
+  renderHistory();
+}
+
+function renderQuickLinks(){
+  const wrap = $("quickLinks");
+  wrap.innerHTML = "";
+  QUICK.forEach(item=>{
+    const b = document.createElement("button");
+    b.className = "chip";
+    b.textContent = item.label;
+    b.addEventListener("click", ()=>{
+      $("q").value = item.q;
+      recommend();
+    });
+    wrap.appendChild(b);
+  });
+}
+
+function renderHistory(){
+  const hist = loadHistory();
+  $("history").innerHTML = hist.length ? hist.map(h=>`
+    <li>
+      <span>${escapeHtml(h)}</span>
+      <span class="row" style="gap:8px">
+        <button class="btn small ghost" data-use="${encodeURIComponent(h)}">Use</button>
+        <a class="btn small ghost" href="${ytUrl(h)}" target="_blank" rel="noopener noreferrer">Search</a>
+      </span>
+    </li>
+  `).join("") : `<li class="small">No history yet. Try a search!</li>`;
+
+  $("history").querySelectorAll("[data-use]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      $("q").value = decodeURIComponent(btn.getAttribute("data-use"));
+      recommend();
+    });
+  });
+}
+
+let lastLinks = [];
+
+function renderResults(items){
+  lastLinks = items.map(i => ytUrl(i.query));
+  $("results").innerHTML = items.map((i, idx)=>`
+    <li>
+      <div>
+        <div><b>${escapeHtml(i.title)}</b> <span class="small">(${escapeHtml(i.query)})</span></div>
+        <div class="small">Match score: <span class="score">${i.score}</span>/99</div>
+      </div>
+      <div class="row" style="gap:8px">
+        <a class="btn small" href="${ytUrl(i.query)}" target="_blank" rel="noopener noreferrer">Open</a>
+        <button class="btn small ghost" data-copy="${idx}">Copy</button>
+      </div>
+    </li>
+  `).join("");
+
+  $("results").querySelectorAll("[data-copy]").forEach(btn=>{
+    btn.addEventListener("click", async ()=>{
+      const idx = Number(btn.getAttribute("data-copy"));
+      try{
+        await navigator.clipboard.writeText(lastLinks[idx]);
+        btn.textContent = "Copied";
+        setTimeout(()=>btn.textContent="Copy", 900);
+      }catch(e){
+        alert("Clipboard blocked — copy manually from the address bar.");
+      }
+    });
+  });
+}
+
+function escapeHtml(s){
+  return (s+"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+}
+
+function recommend(){
+  const text = $("q").value.trim();
+  if(!text) return;
+
+  const items = buildQueries(text).slice(0,6);
+  renderResults(items);
+  pushHistory(text);
+}
+
+$("go").addEventListener("click", recommend);
+
+$("random").addEventListener("click", ()=>{
+  const seed = SURPRISE[Math.floor(Math.random()*SURPRISE.length)];
+  $("q").value = seed;
+  recommend();
+});
+
+document.querySelectorAll(".chip[data-seed]").forEach(chip=>{
+  chip.addEventListener("click", ()=>{
+    $("q").value = chip.getAttribute("data-seed");
+    recommend();
+  });
+});
+
+$("openAll").addEventListener("click", ()=>{
+  // open top 3 (browser may block popups unless triggered by click — this is a click)
+  const toOpen = lastLinks.slice(0,3);
+  if(!toOpen.length) return;
+  toOpen.forEach((u)=> window.open(u, "_blank", "noopener,noreferrer"));
+});
+
+$("copyAll").addEventListener("click", async ()=>{
+  if(!lastLinks.length) return;
+  try{
+    await navigator.clipboard.writeText(lastLinks.join("\n"));
+    $("copyAll").textContent = "Copied!";
+    setTimeout(()=>$("copyAll").textContent="Copy links", 900);
+  }catch(e){
+    alert("Clipboard blocked — copy manually.");
+  }
+});
+
+$("clearHistory").addEventListener("click", ()=>{
+  localStorage.removeItem("vidscout_history");
+  renderHistory();
+});
+
+document.addEventListener("keydown", (e)=>{
+  if(e.key === "/"){
+    e.preventDefault();
+    $("q").focus();
+  }
+  if(e.key === "Enter" && document.activeElement === $("q")){
+    recommend();
+  }
+});
+
+renderQuickLinks();
+renderHistory();
+</script>
+</body>
+</html>
