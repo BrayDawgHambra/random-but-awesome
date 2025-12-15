@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Avoid-Reminder — local</title>
+  <style>
+    :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#f7f9fc;color:#111}
+    body{max-width:900px;margin:24px auto;padding:18px;background:#fff;border-radius:10px;box-shadow:0 6px 28px rgba(22,35,60,.06)}
+    h1{margin:0 0 8px;font-size:20px}
+    .row{display:flex;gap:8px;align-items:center}
+    label{font-size:13px}
+    input[type=text], input[type=number], select, textarea{width:100%;padding:8px;border:1px solid #dfe6ef;border-radius:6px}
+    button{padding:8px 12px;border-radius:8px;border:0;background:#0b69ff;color:#fff;cursor:pointer}
+    button.ghost{background:#e6eefc;color:#0b69ff;border:1px solid #c7ddff}
+    .card{padding:12px;border-radius:8px;border:1px solid #eef4fb;margin-top:12px}
+    .list-item{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:8px 0;border-bottom:1px dashed #f0f4fa}
+    .muted{color:#556}
+    .small{font-size:13px}
+    .danger{background:#ff4757}
+    .flex{display:flex;gap:8px}
+    .chip{background:#f1f5ff;border-radius:999px;padding:6px 10px;font-weight:600}
+    footer{margin-top:20px;font-size:12px;color:#556}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .days input{margin-right:6px}
+  </style>
+</head>
+<body>
+  <h1>Avoid-Reminder (local HTML)</h1>
+  <p class="muted small">Store people locally, set schedule or geofence reminders, and get browser notifications while the page is open. Nothing is uploaded.</p>
+
+  <div class="card">
+    <h3>Add / Edit person</h3>
+    <div style="display:grid;gap:8px">
+      <input id="name" type="text" placeholder="Name (e.g. John Doe)" />
+      <input id="keywords" type="text" placeholder="Keywords / handles (comma-separated) — matches manual " />
+      <div class="grid">
+        <div>
+          <label class="small">Geofence?</label>
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <input id="hasGeofence" type="checkbox" />
+            <label for="hasGeofence" class="small muted">Enable geofence</label>
+          </div>
+          <div id="geoInputs" style="display:none;margin-top:8px">
+            <div class="row" style="gap:6px">
+              <input id="lat" type="number" step="any" placeholder="Latitude" />
+              <input id="lon" type="number" step="any" placeholder="Longitude" />
+            </div>
+            <div class="row" style="gap:6px;margin-top:6px">
+              <input id="radius" type="number" placeholder="Radius (meters)" value="200" />
+              <button id="useCurrent" class="ghost" type="button">Use current location</button>
+            </div>
+            <div class="small muted" style="margin-top:6px">Geofence checks only work while the page is open and you grant location access.</div>
+          </div>
+        </div>
+        <div>
+          <label class="small">Schedule?</label>
+          <div style="margin-top:6px">
+            <input id="hasSchedule" type="checkbox" /> <label class="small muted">Enable schedule</label>
+          </div>
+          <div id="schedInputs" style="display:none;margin-top:8px">
+            <div class="row">
+              <input id="startTime" type="time" />
+              <input id="endTime" type="time" />
+            </div>
+            <div class="days small" style="margin-top:6px">
+              <label><input type="checkbox" value="0" class="day"> Sun</label>
+              <label><input type="checkbox" value="1" class="day"> Mon</label>
+              <label><input type="checkbox" value="2" class="day"> Tue</label>
+              <label><input type="checkbox" value="3" class="day"> Wed</label>
+              <label><input type="checkbox" value="4" class="day"> Thu</label>
+              <label><input type="checkbox" value="5" class="day"> Fri</label>
+              <label><input type="checkbox" value="6" class="day"> Sat</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px">
+        <button id="save">Add person</button>
+        <button id="cancelEdit" class="ghost" style="display:none">Cancel edit</button>
+        <button id="testNow" class="ghost">Test now</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <h3 style="margin:0">People to avoid</h3>
+      <div class="muted small">Checks run every 60s while open</div>
+    </div>
+    <div id="list"></div>
+
+    <div style="margin-top:10px" class="row">
+      <button id="export" class="ghost">Export JSON</button>
+      <input id="importFile" type="file" accept="application/json" style="display:none" />
+      <button id="importBtn" class="ghost">Import JSON</button>
+      <button id="clearAll" class="ghost">Clear all</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Options</h3>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button id="requestPermissions">Request permissions</button>
+      <label class="small muted">Notification + Location</label>
+      <div style="flex:1"></div>
+      <label class="small"><input id="soundToggle" type="checkbox" checked /> Play sound on reminder</label>
+    </div>
+  </div>
+
+  <footer>
+    Warning: This app intentionally avoids building automated face recognition or any feature that identifies people in public. Geofencing and time-based reminders rely on your device's location and clock. Geolocation & notifications require permission. This app stores data locally in your browser only.
+  </footer>
+
+  <audio id="alertSound" src="" preload="auto"></audio>
+
+<script>
+/* Avoid-Reminder: local HTML app
+   - LocalStorage key: avoidList
+   - Structure per entry:
+     { id, name, keywords:[], hasGeofence, lat, lon, radius, hasSchedule, startTime, endTime, days:[0..6], active:true, lastTriggered:timestamp }
+*/
+
+const KEY = 'avoidList_v1';
+const SOUND_URL = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQgAAAAA'; // tiny silence placeholder
+document.getElementById('alertSound').src = SOUND_URL;
+
+let list = [];
+let editingId = null;
+
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    list = raw ? JSON.parse(raw) : [];
+  }catch(e){ list = []; }
+  render();
+}
+function save(){
+  localStorage.setItem(KEY, JSON.stringify(list));
+  render();
+}
+function idOf(item){ return item.id || (item.id = Date.now().toString(36) + Math.random().toString(36).slice(2,8)); }
+
+function render(){
+  const container = document.getElementById('list');
+  container.innerHTML = '';
+  if(list.length === 0){ container.innerHTML = '<div class="muted small">No people yet.</div>'; return; }
+  list.forEach(it=>{
+    const div = document.createElement('div');
+    div.className = 'list-item';
+    div.innerHTML = `
+      <div style="min-width:0">
+        <div style="display:flex;gap:8px;align-items:center">
+          <div class="chip">${escapeHtml(it.name || 'Unnamed')}</div>
+          <div class="small muted">${it.keywords && it.keywords.length ? escapeHtml(it.keywords.join(', ')) : ''}</div>
+        </div>
+        <div class="small muted" style="margin-top:6px">
+          ${it.hasGeofence ? `Geofence: ${it.lat.toFixed(5)}, ${it.lon.toFixed(5)} ${it.radius}m` : ''}
+          ${it.hasSchedule ? ` · Schedule: ${it.startTime || '--'}–${it.endTime || '--'} on ${ (it.days && it.days.length) ? it.days.map(d=>'SMTWTFS'[d]).join('') : 'any day'}` : ''}
+        </div>
+      </div>
+      <div class="flex">
+        <button data-id="${it.id}" class="ghost toggleActive">${it.active ? 'Active' : 'Inactive'}</button>
+        <button data-id="${it.id}" class="ghost edit">Edit</button>
+        <button data-id="${it.id}" class="ghost danger delete" style="background:#ffebee;color:#c62828">Delete</button>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function escapeHtml(s){ return (s+'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c])); }
+
+document.getElementById('hasGeofence').addEventListener('change', e=>{
+  document.getElementById('geoInputs').style.display = e.target.checked ? 'block' : 'none';
+});
+document.getElementById('hasSchedule').addEventListener('change', e=>{
+  document.getElementById('schedInputs').style.display = e.target.checked ? 'block' : 'none';
+});
+
+document.getElementById('useCurrent').addEventListener('click', async ()=>{
+  if(!navigator.geolocation){ alert('Geolocation not supported in this browser'); return; }
+  navigator.geolocation.getCurrentPosition(pos=>{
+    document.getElementById('lat').value = pos.coords.latitude.toFixed(6);
+    document.getElementById('lon').value = pos.coords.longitude.toFixed(6);
+  }, err=> alert('Location failed: '+err.message), {enableHighAccuracy:true});
+});
+
+document.getElementById('save').addEventListener('click', ()=>{
+  const name = document.getElementById('name').value.trim();
+  if(!name){ alert('Please provide a name'); return; }
+  const keywords = document.getElementById('keywords').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const hasGeofence = document.getElementById('hasGeofence').checked;
+  const lat = parseFloat(document.getElementById('lat').value || 0);
+  const lon = parseFloat(document.getElementById('lon').value || 0);
+  const radius = parseFloat(document.getElementById('radius').value || 200);
+  const hasSchedule = document.getElementById('hasSchedule').checked;
+  const startTime = document.getElementById('startTime').value;
+  const endTime = document.getElementById('endTime').value;
+  const daysEls = Array.from(document.querySelectorAll('.day:checked')).map(n=>parseInt(n.value));
+  const obj = { name, keywords, hasGeofence, lat, lon, radius, hasSchedule, startTime, endTime, days: daysEls, active:true, lastTriggered:0 };
+  if(editingId){
+    const idx = list.findIndex(x=>x.id===editingId);
+    if(idx>=0){ obj.id = editingId; list[idx] = Object.assign(list[idx], obj); editingId = null; document.getElementById('save').textContent = 'Add person'; document.getElementById('cancelEdit').style.display='none'; }
+  } else {
+    obj.id = Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+    list.push(obj);
+  }
+  save();
+  clearForm();
+});
+
+document.getElementById('cancelEdit').addEventListener('click', ()=>{
+  editingId = null; clearForm(); document.getElementById('save').textContent = 'Add person'; document.getElementById('cancelEdit').style.display='none';
+});
+
+function clearForm(){
+  document.getElementById('name').value='';
+  document.getElementById('keywords').value='';
+  document.getElementById('hasGeofence').checked=false;
+  document.getElementById('geoInputs').style.display='none';
+  document.getElementById('lat').value=''; document.getElementById('lon').value=''; document.getElementById('radius').value='200';
+  document.getElementById('hasSchedule').checked=false;
+  document.getElementById('schedInputs').style.display='none';
+  document.getElementById('startTime').value=''; document.getElementById('endTime').value='';
+  document.querySelectorAll('.day').forEach(n=>n.checked=false);
+}
+
+document.getElementById('list').addEventListener('click', (e)=>{
+  const id = e.target.getAttribute('data-id');
+  if(!id) return;
+  if(e.target.classList.contains('delete')){
+    if(confirm('Delete this person?')){ list = list.filter(x=>x.id!==id); save(); }
+  } else if(e.target.classList.contains('edit')){
+    const it = list.find(x=>x.id===id); if(!it) return;
+    editingId = it.id;
+    document.getElementById('name').value = it.name;
+    document.getElementById('keywords').value = (it.keywords||[]).join(', ');
+    document.getElementById('hasGeofence').checked = !!it.hasGeofence;
+    document.getElementById('geoInputs').style.display = it.hasGeofence ? 'block' : 'none';
+    document.getElementById('lat').value = it.lat || '';
+    document.getElementById('lon').value = it.lon || '';
+    document.getElementById('radius').value = it.radius || 200;
+    document.getElementById('hasSchedule').checked = !!it.hasSchedule;
+    document.getElementById('schedInputs').style.display = it.hasSchedule ? 'block' : 'none';
+    document.getElementById('startTime').value = it.startTime||'';
+    document.getElementById('endTime').value = it.endTime||'';
+    document.querySelectorAll('.day').forEach(n=>n.checked = (it.days||[]).includes(parseInt(n.value)));
+    document.getElementById('save').textContent = 'Save changes';
+    document.getElementById('cancelEdit').style.display='inline-block';
+  } else if(e.target.classList.contains('toggleActive')){
+    const it = list.find(x=>x.id===id);
+    it.active = !it.active;
+    save();
+  }
+});
+
+document.getElementById('testNow').addEventListener('click', ()=>{
+  checkAllTriggers(true);
+});
+
+document.getElementById('requestPermissions').addEventListener('click', async ()=>{
+  await requestPermissions();
+});
+
+async function requestPermissions(){
+  if('Notification' in window){
+    if(Notification.permission !== 'granted') await Notification.requestPermission();
+  }
+  // geolocation permission is triggered by requesting position
+  if(navigator.permissions && navigator.permissions.query){
+    try{
+      const p = await navigator.permissions.query({name:'geolocation'});
+      // nothing to do — will ask when getting position
+    }catch(e){}
+  }
+  alert('Permissions requested. Note: the browser will ask for location when geofence is used.');
+}
+
+function showReminder(it, reason){
+  const title = `Avoid ${it.name}`;
+  const body = reason || 'Reminder to keep distance';
+  // show in-page alert
+  console.log('Reminder:', title, body);
+  if('Notification' in window && Notification.permission === 'granted'){
+    navigator.serviceWorker && navigator.serviceWorker.getRegistration().then(reg=>{
+      if(reg && reg.showNotification){
+        reg.showNotification(title, { body, tag: it.id, renotify: true });
+      } else {
+        new Notification(title, { body, tag: it.id, renotify: true });
+      }
+    });
+  } else {
+    alert(title + '\n' + body);
+  }
+  if(document.getElementById('soundToggle').checked){
+    const s = document.getElementById('alertSound');
+    try{ s.currentTime = 0; s.play(); }catch(e){}
+  }
+  it.lastTriggered = Date.now();
+  save();
+}
+
+function checkAllTriggers(force){
+  list.forEach(async (it)=>{
+    if(!it.active) return;
+    // Avoid repeated triggers too fast: do not trigger again within 2 minutes unless forced
+    if(!force && it.lastTriggered && (Date.now() - it.lastTriggered) < 2*60*1000) return;
+
+    // 1) Time schedule
+    if(it.hasSchedule){
+      if(!isNowInSchedule(it)) {
+        // not in schedule
+      } else {
+        showReminder(it, 'Scheduled reminder');
+        return;
+      }
+    }
+    // 2) Geofence
+    if(it.hasGeofence){
+      if(!navigator.geolocation){
+        // can't do geofence
+      } else {
+        try{
+          const pos = await getCurrentPositionPromise({enableHighAccuracy:true, maximumAge: 60*1000, timeout:5000});
+          const d = distanceMeters(pos.coords.latitude, pos.coords.longitude, it.lat, it.lon);
+          if(d <= it.radius){
+            showReminder(it, `Near ${it.name} (${Math.round(d)} m)`);
+            return;
+          }
+        }catch(e){
+          // ignore location failure
+        }
+      }
+    }
+    // 3) Keywords — the browser can't inspect your other apps; we only offer manual check via text
+  });
+}
+
+function isNowInSchedule(it){
+  if(!it.hasSchedule) return false;
+  const now = new Date();
+  const day = now.getDay(); // 0-6
+  if(it.days && it.days.length && !it.days.includes(day)) return false;
+  if(!it.startTime || !it.endTime) return true; // open-ended
+  const [sh, sm] = it.startTime.split(':').map(Number);
+  const [eh, em] = it.endTime.split(':').map(Number);
+  const start = sh*60+sm;
+  const end = eh*60+em;
+  const cur = now.getHours()*60 + now.getMinutes();
+  if(start <= end) return cur >= start && cur <= end;
+  // overnight schedule (e.g., 22:00 - 06:00)
+  return cur >= start || cur <= end;
+}
+
+function distanceMeters(lat1, lon1, lat2, lon2){
+  const R = 6371000;
+  const toRad = v => v * Math.PI / 180;
+  const dLat = toRad(lat2-lat1);
+  const dLon = toRad(lon2-lon1);
+  const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(toRad(lat1))*Math.cos(toRad(lat2)) * Math.sin(dLon/2)*Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+function getCurrentPositionPromise(opts){ return new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, opts)); }
+
+document.getElementById('export').addEventListener('click', ()=>{
+  const blob = new Blob([JSON.stringify(list,null,2)],{type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'avoid-list.json'; document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('importBtn').addEventListener('click', ()=> document.getElementById('importFile').click());
+document.getElementById('importFile').addEventListener('change', (e)=>{
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ()=> {
+    try{
+      const data = JSON.parse(r.result);
+      if(Array.isArray(data)){
+        list = data;
+        save();
+        alert('Imported ' + list.length + ' entries');
+      } else alert('Invalid file format');
+    }catch(err){ alert('Parse error: ' + err); }
+  };
+  r.readAsText(f);
+});
+
+document.getElementById('clearAll').addEventListener('click', ()=>{
+  if(confirm('Delete ALL entries?')){ list = []; save(); }
+});
+
+window.addEventListener('load', async ()=>{
+  // try register service worker to show notifications via reg.showNotification
+  if('serviceWorker' in navigator){
+    try{ await navigator.serviceWorker.register('sw.js'); console.log('sw registered'); } catch(e){ console.warn('sw failed', e); }
+  }
+  await load();
+  if(Notification && Notification.permission !== 'granted'){
+    // we won't spam permission; user can click button
+  }
+  // run periodic checks every 60s
+  setInterval(()=> checkAllTriggers(false), 60*1000);
+  // also do one on load
+  checkAllTriggers(false);
+});
+
+// initial load
+load();
+
+// simple helper to manually check text (not automatic)
+function manualKeywordCheck(text){
+  const lower = (text||'').toLowerCase();
+  list.forEach(it=>{
+    if(!it.active) return;
+    const kws = it.keywords || [];
+    for(const k of kws){
+      if(k && lower.includes(k.toLowerCase())){
+        showReminder(it, `Keyword match: ${k}`);
+        break;
+      }
+    }
+  });
+}
+// you can call manualKeywordCheck('someone called John') in console to test keywords
+
+</script>
+</body>
+</html>
