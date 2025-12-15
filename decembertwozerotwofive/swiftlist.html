@@ -1,0 +1,1001 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SwiftList</title>
+  <style>
+    :root{
+      --bg0:#0b0f16;
+      --bg1:#0e1420;
+      --card:#111a28cc;
+      --card2:#0f1726cc;
+      --stroke:#22314d;
+      --text:#e9f0ff;
+      --muted:#9fb2d6;
+      --muted2:#7f93bb;
+      --accent:#7dd3fc;
+      --good:#34d399;
+      --warn:#fbbf24;
+      --bad:#fb7185;
+      --shadow: 0 18px 60px rgba(0,0,0,.35);
+      --radius:18px;
+      --radius2:14px;
+      --blur: 18px;
+      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:var(--font);
+      color:var(--text);
+      background:
+        radial-gradient(1200px 600px at 20% 0%, #1a2a55 0%, transparent 60%),
+        radial-gradient(900px 500px at 80% 20%, #1c3a4a 0%, transparent 55%),
+        radial-gradient(1200px 700px at 40% 110%, #2a214e 0%, transparent 55%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      overflow-x:hidden;
+    }
+
+    .wrap{
+      max-width:1120px;
+      margin:0 auto;
+      padding:28px 18px 46px;
+      display:grid;
+      grid-template-columns: 420px 1fr;
+      gap:18px;
+    }
+
+    /* Header */
+    .topbar{
+      grid-column: 1 / -1;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+      margin-bottom:2px;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    .logo{
+      width:40px;height:40px;border-radius:14px;
+      background:
+        radial-gradient(10px 10px at 30% 30%, rgba(255,255,255,.7), transparent 60%),
+        linear-gradient(135deg, rgba(125,211,252,.95), rgba(52,211,153,.85));
+      box-shadow: 0 12px 30px rgba(0,0,0,.25);
+      position:relative;
+      overflow:hidden;
+    }
+    .logo:after{
+      content:"";
+      position:absolute; inset:-40%;
+      background: radial-gradient(circle at 40% 30%, rgba(255,255,255,.25), transparent 55%);
+      transform:rotate(12deg);
+    }
+    .brand h1{
+      font-size:22px;
+      margin:0;
+      letter-spacing:.2px;
+    }
+    .brand small{
+      display:block;
+      color:var(--muted);
+      font-size:12px;
+      margin-top:2px;
+    }
+    .pillbar{
+      display:flex; gap:8px; flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .pill{
+      border:1px solid var(--stroke);
+      background: rgba(17,26,40,.55);
+      backdrop-filter: blur(var(--blur));
+      -webkit-backdrop-filter: blur(var(--blur));
+      padding:9px 11px;
+      border-radius:999px;
+      color:var(--muted);
+      font-size:12px;
+      display:flex; align-items:center; gap:8px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.2);
+      user-select:none;
+    }
+    .pill kbd{
+      font-family:var(--mono);
+      font-size:11px;
+      padding:2px 7px;
+      border-radius:999px;
+      border:1px solid #31486f;
+      color:#cfe0ff;
+      background: rgba(10,15,23,.45);
+    }
+
+    /* Cards */
+    .card{
+      border:1px solid var(--stroke);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(17,26,40,.7), rgba(15,23,38,.55));
+      backdrop-filter: blur(var(--blur));
+      -webkit-backdrop-filter: blur(var(--blur));
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card .head{
+      padding:16px 16px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom:1px solid rgba(34,49,77,.65);
+      background: linear-gradient(180deg, rgba(255,255,255,.04), transparent);
+    }
+    .card .head h2{
+      margin:0;
+      font-size:14px;
+      letter-spacing:.35px;
+      text-transform:uppercase;
+      color:#cfe0ff;
+    }
+    .card .head .sub{
+      font-size:12px;
+      color:var(--muted2);
+    }
+    .card .body{ padding:14px 16px 16px; }
+
+    /* Form */
+    .row{display:grid; gap:10px; margin-bottom:10px;}
+    .row2{display:grid; grid-template-columns: 1fr 130px; gap:10px;}
+    .row3{display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;}
+    label{font-size:12px; color:var(--muted2); margin-bottom:6px; display:block;}
+    input, select, button, textarea{
+      font: inherit;
+      color: var(--text);
+    }
+    input, select, textarea{
+      width:100%;
+      border:1px solid rgba(34,49,77,.8);
+      background: rgba(8,12,18,.45);
+      border-radius: 14px;
+      padding:12px 12px;
+      outline:none;
+      transition: transform .08s ease, border-color .12s ease, background .12s ease;
+    }
+    input:focus, select:focus, textarea:focus{
+      border-color: rgba(125,211,252,.9);
+      background: rgba(8,12,18,.6);
+    }
+    textarea{min-height:66px; resize: vertical;}
+    .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;}
+    .btn{
+      border:1px solid rgba(34,49,77,.9);
+      background: rgba(17,26,40,.55);
+      padding:11px 12px;
+      border-radius: 14px;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:9px;
+      user-select:none;
+      transition: transform .08s ease, background .12s ease, border-color .12s ease, opacity .12s ease;
+    }
+    .btn:hover{ transform: translateY(-1px); }
+    .btn:active{ transform: translateY(0px) scale(.99); }
+    .btn.primary{
+      border-color: rgba(125,211,252,.55);
+      background: linear-gradient(135deg, rgba(125,211,252,.35), rgba(52,211,153,.18));
+    }
+    .btn.danger{
+      border-color: rgba(251,113,133,.55);
+      background: linear-gradient(135deg, rgba(251,113,133,.22), rgba(251,191,36,.10));
+    }
+    .btn .dot{
+      width:10px;height:10px;border-radius:999px;background:var(--accent);
+      box-shadow: 0 0 0 4px rgba(125,211,252,.12);
+    }
+    .btn.danger .dot{ background: var(--bad); box-shadow:0 0 0 4px rgba(251,113,133,.12); }
+    .btn.secondary .dot{ background: var(--warn); box-shadow:0 0 0 4px rgba(251,191,36,.10); }
+
+    /* List */
+    .filters{
+      display:flex; gap:8px; flex-wrap:wrap;
+      margin-top:6px;
+    }
+    .chip{
+      border:1px solid rgba(34,49,77,.85);
+      background: rgba(8,12,18,.35);
+      color: var(--muted);
+      padding:7px 10px;
+      border-radius: 999px;
+      font-size:12px;
+      cursor:pointer;
+      user-select:none;
+      transition: transform .08s ease, background .12s ease, border-color .12s ease;
+    }
+    .chip:hover{ transform: translateY(-1px); }
+    .chip.active{
+      border-color: rgba(125,211,252,.75);
+      background: rgba(125,211,252,.10);
+      color:#dbeafe;
+    }
+
+    .tasklist{ display:flex; flex-direction:column; gap:10px; }
+    .task{
+      border:1px solid rgba(34,49,77,.75);
+      background: rgba(15,23,38,.42);
+      border-radius: var(--radius2);
+      padding:12px 12px;
+      display:grid;
+      grid-template-columns: 10px 1fr auto;
+      gap:12px;
+      align-items:center;
+      cursor:grab;
+    }
+    .task:active{ cursor:grabbing; }
+    .bar{ width:10px; height:100%; border-radius:999px; background: var(--accent); }
+    .task .meta{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      min-width:0;
+    }
+    .task .title{
+      display:flex; align-items:center; gap:8px;
+      min-width:0;
+    }
+    .task .title .check{
+      width:18px;height:18px;border-radius:6px;
+      border:1px solid rgba(159,178,214,.65);
+      display:inline-flex; align-items:center; justify-content:center;
+      background: rgba(8,12,18,.35);
+      flex:0 0 auto;
+    }
+    .task.done .title .check{
+      border-color: rgba(52,211,153,.7);
+      background: rgba(52,211,153,.12);
+    }
+    .task .title span{
+      font-weight:600;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .task.done .title span{
+      text-decoration: line-through;
+      color: rgba(233,240,255,.55);
+      font-weight:520;
+    }
+    .task .sub{
+      color: var(--muted2);
+      font-size:12px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+    }
+    .tag{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid rgba(34,49,77,.8);
+      background: rgba(8,12,18,.35);
+      color: var(--muted);
+      font-size:11px;
+    }
+    .tag .tDot{ width:7px;height:7px;border-radius:999px;background: var(--accent); }
+    .task .right{
+      display:flex; align-items:center; gap:8px;
+      color: var(--muted);
+      font-size:12px;
+    }
+    .iconbtn{
+      border:1px solid rgba(34,49,77,.85);
+      background: rgba(8,12,18,.30);
+      color: var(--muted);
+      border-radius: 12px;
+      padding:9px 10px;
+      cursor:pointer;
+      user-select:none;
+      transition: transform .08s ease, border-color .12s ease, background .12s ease;
+    }
+    .iconbtn:hover{ transform: translateY(-1px); border-color: rgba(125,211,252,.55); }
+    .iconbtn:active{ transform: translateY(0px) scale(.99); }
+
+    /* Timeline */
+    .timeline{
+      position:relative;
+      padding-left:14px;
+    }
+    .timeline:before{
+      content:"";
+      position:absolute;
+      left:6px;
+      top:4px;
+      bottom:4px;
+      width:2px;
+      background: linear-gradient(180deg, rgba(125,211,252,.25), rgba(52,211,153,.18), rgba(251,113,133,.14));
+      border-radius:999px;
+    }
+    .slot{
+      display:grid;
+      grid-template-columns: 70px 1fr;
+      gap:12px;
+      padding:10px 0;
+      align-items:start;
+    }
+    .t{
+      font-family:var(--mono);
+      color: rgba(207,224,255,.72);
+      font-size:12px;
+      letter-spacing:.2px;
+      text-align:right;
+      padding-right:6px;
+      user-select:none;
+    }
+    .slot .bubble{
+      border:1px solid rgba(34,49,77,.7);
+      background: rgba(15,23,38,.34);
+      border-radius: 16px;
+      padding:10px 12px;
+      position:relative;
+      overflow:hidden;
+    }
+    .slot .bubble:before{
+      content:"";
+      position:absolute;
+      left:-2px; top:14px;
+      width:10px;height:10px;
+      border-radius:999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 5px rgba(125,211,252,.10);
+      border:1px solid rgba(255,255,255,.12);
+    }
+    .bubble .btitle{
+      font-weight:650;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .bubble .bsub{
+      margin-top:6px;
+      color: var(--muted2);
+      font-size:12px;
+      display:flex; flex-wrap:wrap; gap:8px;
+    }
+    .empty{
+      color: rgba(159,178,214,.55);
+      font-size:13px;
+      padding:8px 2px;
+    }
+
+    /* Footer hint */
+    .hint{
+      margin-top:10px;
+      color: rgba(159,178,214,.7);
+      font-size:12px;
+      line-height:1.35;
+    }
+
+    /* Responsive */
+    @media (max-width: 980px){
+      .wrap{ grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>SwiftList</h1>
+          <small>Structured-style tasks + a simple day timeline.</small>
+        </div>
+      </div>
+      <div class="pillbar">
+        <div class="pill"><span>Quick add</span> <kbd>N</kbd></div>
+        <div class="pill"><span>Search</span> <kbd>/</kbd></div>
+        <div class="pill"><span>Done</span> <kbd>D</kbd></div>
+      </div>
+    </div>
+
+    <!-- Left: Create / List -->
+    <section class="card" id="createCard">
+      <div class="head">
+        <div>
+          <h2>Add task</h2>
+          <div class="sub">Fast, clean, and actually usable.</div>
+        </div>
+        <div class="sub" id="todayLabel"></div>
+      </div>
+      <div class="body">
+        <div class="row">
+          <div>
+            <label for="title">Task</label>
+            <input id="title" placeholder="e.g., Review comp model notes" maxlength="120" />
+          </div>
+          <div>
+            <label for="notes">Notes (optional)</label>
+            <textarea id="notes" placeholder="Anything you don’t want to forget…"></textarea>
+          </div>
+        </div>
+
+        <div class="row3">
+          <div>
+            <label for="time">Start time</label>
+            <input id="time" type="time" value="09:00" />
+          </div>
+          <div>
+            <label for="dur">Duration</label>
+            <select id="dur">
+              <option value="15">15 min</option>
+              <option value="30" selected>30 min</option>
+              <option value="45">45 min</option>
+              <option value="60">60 min</option>
+              <option value="90">90 min</option>
+              <option value="120">2 hours</option>
+            </select>
+          </div>
+          <div>
+            <label for="tag">Tag</label>
+            <input id="tag" placeholder="e.g., Work, Home, Errands" maxlength="30" />
+          </div>
+        </div>
+
+        <div class="row2">
+          <div>
+            <label for="color">Color</label>
+            <select id="color">
+              <option value="#7dd3fc" selected>Sky</option>
+              <option value="#34d399">Mint</option>
+              <option value="#fbbf24">Amber</option>
+              <option value="#fb7185">Rose</option>
+              <option value="#a78bfa">Violet</option>
+              <option value="#60a5fa">Blue</option>
+            </select>
+          </div>
+          <div>
+            <label for="priority">Priority</label>
+            <select id="priority">
+              <option value="normal" selected>Normal</option>
+              <option value="high">High</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn primary" id="addBtn" title="Add task (Enter)">
+            <span class="dot"></span>
+            Add to SwiftList
+          </button>
+          <button class="btn secondary" id="focusBtn" title="Focus the add box (N)">
+            <span class="dot"></span>
+            New (focus)
+          </button>
+          <button class="btn danger" id="wipeBtn" title="Clear all tasks">
+            <span class="dot"></span>
+            Wipe all
+          </button>
+        </div>
+
+        <div class="hint">
+          Tips: drag tasks to reorder • click the checkbox to mark done • edit by clicking a task • everything saves locally in your browser.
+        </div>
+      </div>
+    </section>
+
+    <!-- Right: Timeline + Search -->
+    <section class="card">
+      <div class="head">
+        <div>
+          <h2>Today</h2>
+          <div class="sub">Timeline view (like Structured, simplified).</div>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <input id="search" placeholder="Search tasks… ( / )" style="width:220px" />
+        </div>
+      </div>
+      <div class="body">
+        <div class="filters" id="filters"></div>
+        <div style="height:10px"></div>
+        <div class="tasklist" id="tasklist"></div>
+
+        <div style="height:16px"></div>
+        <div class="head" style="border:0; padding:0 0 10px 0; background:none;">
+          <div>
+            <h2>Schedule</h2>
+            <div class="sub">Sorted by time.</div>
+          </div>
+        </div>
+        <div class="timeline" id="timeline"></div>
+      </div>
+    </section>
+  </div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+
+  const el = {
+    title: $("title"),
+    notes: $("notes"),
+    time: $("time"),
+    dur: $("dur"),
+    tag: $("tag"),
+    color: $("color"),
+    priority: $("priority"),
+    addBtn: $("addBtn"),
+    focusBtn: $("focusBtn"),
+    wipeBtn: $("wipeBtn"),
+    list: $("tasklist"),
+    timeline: $("timeline"),
+    search: $("search"),
+    filters: $("filters"),
+    todayLabel: $("todayLabel")
+  };
+
+  const STORAGE_KEY = "swiftlist.v1";
+  let state = {
+    tasks: [],
+    filter: "All",
+    showDone: false,
+    query: ""
+  };
+
+  const uid = () => Math.random().toString(16).slice(2) + Date.now().toString(16);
+
+  function load(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return;
+      const parsed = JSON.parse(raw);
+      if(parsed && Array.isArray(parsed.tasks)) state = { ...state, ...parsed };
+    }catch(e){}
+  }
+  function save(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function fmtDate(d = new Date()){
+    return d.toLocaleDateString(undefined, { weekday:"short", month:"short", day:"numeric" });
+  }
+  function fmtTime(hhmm){
+    // "09:30" -> locale time
+    const [h,m] = hhmm.split(":").map(Number);
+    const d = new Date();
+    d.setHours(h, m, 0, 0);
+    return d.toLocaleTimeString(undefined, { hour:"numeric", minute:"2-digit" });
+  }
+  function minsFromHHMM(hhmm){
+    const [h,m] = hhmm.split(":").map(Number);
+    return h*60+m;
+  }
+  function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+  function taskMatches(t){
+    if(!state.showDone && t.done) return false;
+    if(state.filter !== "All"){
+      const tag = (t.tag || "").trim();
+      if(!tag) return false;
+      if(tag.toLowerCase() !== state.filter.toLowerCase()) return false;
+    }
+    if(state.query){
+      const q = state.query.toLowerCase();
+      const blob = `${t.title} ${t.notes||""} ${t.tag||""}`.toLowerCase();
+      if(!blob.includes(q)) return false;
+    }
+    return true;
+  }
+
+  function renderFilters(){
+    const tags = Array.from(new Set(state.tasks.map(t => (t.tag||"").trim()).filter(Boolean)));
+    tags.sort((a,b)=>a.localeCompare(b));
+
+    const chips = ["All", ...tags, state.showDone ? "Hide Done" : "Show Done"];
+    el.filters.innerHTML = "";
+
+    chips.forEach(name => {
+      const chip = document.createElement("div");
+      chip.className = "chip" + (
+        (name==="All" && state.filter==="All") ||
+        (name!=="All" && name!=="Show Done" && name!=="Hide Done" && state.filter.toLowerCase()===name.toLowerCase()) ||
+        ((name==="Show Done" || name==="Hide Done") && state.showDone)
+        ? " active" : ""
+      );
+      chip.textContent = name;
+
+      chip.addEventListener("click", () => {
+        if(name==="Show Done" || name==="Hide Done"){
+          state.showDone = !state.showDone;
+        } else {
+          state.filter = name;
+        }
+        save();
+        render();
+      });
+
+      el.filters.appendChild(chip);
+    });
+  }
+
+  function renderList(){
+    el.list.innerHTML = "";
+    const tasks = state.tasks.filter(taskMatches);
+
+    if(tasks.length === 0){
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = "No tasks match your filters. Add something (press N).";
+      el.list.appendChild(empty);
+      return;
+    }
+
+    tasks.forEach((t, idx) => {
+      const card = document.createElement("div");
+      card.className = "task" + (t.done ? " done" : "");
+      card.draggable = true;
+      card.dataset.id = t.id;
+
+      const bar = document.createElement("div");
+      bar.className = "bar";
+      bar.style.background = t.color || "#7dd3fc";
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+
+      const titleRow = document.createElement("div");
+      titleRow.className = "title";
+
+      const check = document.createElement("div");
+      check.className = "check";
+      check.innerHTML = t.done ? "✓" : "";
+      check.addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggleDone(t.id);
+      });
+
+      const title = document.createElement("span");
+      title.textContent = t.title || "(untitled)";
+      titleRow.appendChild(check);
+      titleRow.appendChild(title);
+
+      const sub = document.createElement("div");
+      sub.className = "sub";
+      const when = document.createElement("span");
+      when.textContent = `${fmtTime(t.time)} • ${t.dur}m`;
+      sub.appendChild(when);
+
+      if(t.tag){
+        const tag = document.createElement("span");
+        tag.className = "tag";
+        tag.innerHTML = `<span class="tDot" style="background:${t.color||"#7dd3fc"}"></span>${escapeHtml(t.tag)}`;
+        sub.appendChild(tag);
+      }
+      if(t.priority && t.priority !== "normal"){
+        const pr = document.createElement("span");
+        pr.className = "tag";
+        pr.innerHTML = `<span class="tDot" style="background:${t.priority==="high" ? "#fbbf24" : "#9ca3af"}"></span>${t.priority}`;
+        sub.appendChild(pr);
+      }
+
+      meta.appendChild(titleRow);
+      meta.appendChild(sub);
+
+      const right = document.createElement("div");
+      right.className = "right";
+      const edit = document.createElement("button");
+      edit.className = "iconbtn";
+      edit.textContent = "Edit";
+      edit.addEventListener("click", (e) => {
+        e.stopPropagation();
+        editTask(t.id);
+      });
+
+      const del = document.createElement("button");
+      del.className = "iconbtn";
+      del.textContent = "Delete";
+      del.addEventListener("click", (e) => {
+        e.stopPropagation();
+        deleteTask(t.id);
+      });
+
+      right.appendChild(edit);
+      right.appendChild(del);
+
+      card.appendChild(bar);
+      card.appendChild(meta);
+      card.appendChild(right);
+
+      // click to edit
+      card.addEventListener("click", () => editTask(t.id));
+
+      // drag reorder
+      card.addEventListener("dragstart", (e) => {
+        e.dataTransfer.setData("text/plain", t.id);
+        e.dataTransfer.effectAllowed = "move";
+      });
+      card.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        card.style.borderColor = "rgba(125,211,252,.65)";
+      });
+      card.addEventListener("dragleave", () => {
+        card.style.borderColor = "rgba(34,49,77,.75)";
+      });
+      card.addEventListener("drop", (e) => {
+        e.preventDefault();
+        card.style.borderColor = "rgba(34,49,77,.75)";
+        const draggedId = e.dataTransfer.getData("text/plain");
+        if(draggedId && draggedId !== t.id){
+          reorder(draggedId, t.id);
+        }
+      });
+
+      el.list.appendChild(card);
+    });
+  }
+
+  function renderTimeline(){
+    el.timeline.innerHTML = "";
+
+    const tasks = state.tasks
+      .filter(taskMatches)
+      .slice()
+      .sort((a,b) => minsFromHHMM(a.time) - minsFromHHMM(b.time));
+
+    if(tasks.length === 0){
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = "Your timeline is clear. Add a task with a start time.";
+      el.timeline.appendChild(empty);
+      return;
+    }
+
+    tasks.forEach(t => {
+      const slot = document.createElement("div");
+      slot.className = "slot";
+
+      const tm = document.createElement("div");
+      tm.className = "t";
+      tm.textContent = fmtTime(t.time);
+
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.style.borderColor = "rgba(34,49,77,.7)";
+      bubble.style.background = "rgba(15,23,38,.34)";
+      bubble.style.setProperty("--accent", t.color || "#7dd3fc");
+
+      // set the dot color via inline style using :before trick (we'll just overlay a tiny gradient)
+      bubble.style.boxShadow = "inset 0 0 0 1px rgba(255,255,255,.02)";
+      bubble.style.position = "relative";
+      bubble.addEventListener("click", () => editTask(t.id));
+
+      // override dot by adding a small absolute dot (more reliable than ::before var)
+      const dot = document.createElement("div");
+      dot.style.position = "absolute";
+      dot.style.left = "-2px";
+      dot.style.top = "14px";
+      dot.style.width = "10px";
+      dot.style.height = "10px";
+      dot.style.borderRadius = "999px";
+      dot.style.background = t.color || "#7dd3fc";
+      dot.style.boxShadow = `0 0 0 5px ${hexToRgba(t.color || "#7dd3fc", .10)}`;
+      dot.style.border = "1px solid rgba(255,255,255,.12)";
+      bubble.appendChild(dot);
+
+      const bt = document.createElement("div");
+      bt.className = "btitle";
+      bt.innerHTML = `<span>${escapeHtml(t.title)}</span><span style="color:rgba(159,178,214,.8);font-family:var(--mono);font-size:12px">${t.dur}m</span>`;
+
+      const bs = document.createElement("div");
+      bs.className = "bsub";
+      const pieces = [];
+      if(t.tag) pieces.push(`🏷 ${escapeHtml(t.tag)}`);
+      if(t.priority && t.priority !== "normal") pieces.push(t.priority==="high" ? "⚡ High" : "🐢 Low");
+      if(t.notes) pieces.push(`📝 ${escapeHtml(shorten(t.notes, 90))}`);
+      bs.innerHTML = pieces.map(p => `<span class="tag" style="background:rgba(8,12,18,.25)">${p}</span>`).join("");
+
+      bubble.appendChild(bt);
+      if(pieces.length) bubble.appendChild(bs);
+
+      slot.appendChild(tm);
+      slot.appendChild(bubble);
+      el.timeline.appendChild(slot);
+    });
+  }
+
+  function render(){
+    el.todayLabel.textContent = fmtDate();
+    renderFilters();
+    renderList();
+    renderTimeline();
+  }
+
+  function addTask(){
+    const title = el.title.value.trim();
+    if(!title){
+      el.title.focus();
+      el.title.style.borderColor = "rgba(251,113,133,.85)";
+      setTimeout(() => el.title.style.borderColor = "rgba(34,49,77,.8)", 450);
+      return;
+    }
+
+    const t = {
+      id: uid(),
+      title,
+      notes: el.notes.value.trim(),
+      time: el.time.value || "09:00",
+      dur: Number(el.dur.value || 30),
+      tag: el.tag.value.trim(),
+      color: el.color.value || "#7dd3fc",
+      priority: el.priority.value || "normal",
+      done: false,
+      createdAt: Date.now()
+    };
+
+    state.tasks.unshift(t);
+    save();
+    clearForm(false);
+    render();
+  }
+
+  function clearForm(clearAll=true){
+    el.title.value = "";
+    el.notes.value = "";
+    if(clearAll){
+      el.time.value = "09:00";
+      el.dur.value = "30";
+      el.tag.value = "";
+      el.color.value = "#7dd3fc";
+      el.priority.value = "normal";
+    }
+    el.title.focus();
+  }
+
+  function toggleDone(id){
+    const t = state.tasks.find(x => x.id === id);
+    if(!t) return;
+    t.done = !t.done;
+    save();
+    render();
+  }
+
+  function deleteTask(id){
+    state.tasks = state.tasks.filter(x => x.id !== id);
+    save();
+    render();
+  }
+
+  function editTask(id){
+    const t = state.tasks.find(x => x.id === id);
+    if(!t) return;
+
+    // super lightweight "edit" UX: load into form and switch add button into "Save"
+    el.title.value = t.title || "";
+    el.notes.value = t.notes || "";
+    el.time.value = t.time || "09:00";
+    el.dur.value = String(t.dur || 30);
+    el.tag.value = t.tag || "";
+    el.color.value = t.color || "#7dd3fc";
+    el.priority.value = t.priority || "normal";
+
+    el.addBtn.textContent = "Save changes";
+    el.addBtn.classList.add("primary");
+    el.addBtn.onclick = () => {
+      const newTitle = el.title.value.trim();
+      if(!newTitle){ el.title.focus(); return; }
+      t.title = newTitle;
+      t.notes = el.notes.value.trim();
+      t.time = el.time.value || "09:00";
+      t.dur = Number(el.dur.value || 30);
+      t.tag = el.tag.value.trim();
+      t.color = el.color.value || "#7dd3fc";
+      t.priority = el.priority.value || "normal";
+      save();
+      // restore button
+      el.addBtn.innerHTML = `<span class="dot"></span>Add to SwiftList`;
+      el.addBtn.onclick = addTask;
+      clearForm(false);
+      render();
+    };
+
+    // scroll to form on small screens
+    document.getElementById("createCard").scrollIntoView({ behavior:"smooth", block:"start" });
+    el.title.focus();
+  }
+
+  function reorder(draggedId, targetId){
+    const a = state.tasks.findIndex(t => t.id === draggedId);
+    const b = state.tasks.findIndex(t => t.id === targetId);
+    if(a < 0 || b < 0) return;
+    const [item] = state.tasks.splice(a, 1);
+    state.tasks.splice(b, 0, item);
+    save();
+    render();
+  }
+
+  function wipeAll(){
+    if(!state.tasks.length) return;
+    const ok = confirm("Wipe ALL tasks from SwiftList? This cannot be undone.");
+    if(!ok) return;
+    state.tasks = [];
+    save();
+    render();
+  }
+
+  function escapeHtml(str){
+    return (str || "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+  function shorten(s, n){
+    s = s || "";
+    return s.length > n ? s.slice(0, n-1) + "…" : s;
+  }
+  function hexToRgba(hex, a){
+    const h = (hex || "#7dd3fc").replace("#","");
+    const full = h.length===3 ? h.split("").map(c=>c+c).join("") : h;
+    const r = parseInt(full.slice(0,2),16);
+    const g = parseInt(full.slice(2,4),16);
+    const b = parseInt(full.slice(4,6),16);
+    return `rgba(${r},${g},${b},${clamp(a,0,1)})`;
+  }
+
+  // Events
+  el.addBtn.addEventListener("click", addTask);
+  el.focusBtn.addEventListener("click", () => clearForm(false));
+  el.wipeBtn.addEventListener("click", wipeAll);
+
+  el.search.addEventListener("input", () => {
+    state.query = el.search.value.trim();
+    save();
+    render();
+  });
+
+  // Keyboard shortcuts
+  window.addEventListener("keydown", (e) => {
+    const inField = ["INPUT","TEXTAREA","SELECT"].includes(document.activeElement?.tagName);
+
+    if(e.key === "/" && !inField){
+      e.preventDefault();
+      el.search.focus();
+      return;
+    }
+    if((e.key === "n" || e.key === "N") && !e.metaKey && !e.ctrlKey){
+      e.preventDefault();
+      clearForm(false);
+      return;
+    }
+    if((e.key === "d" || e.key === "D") && !e.metaKey && !e.ctrlKey && !inField){
+      e.preventDefault();
+      state.showDone = !state.showDone;
+      save();
+      render();
+      return;
+    }
+    if(e.key === "Enter" && inField && (document.activeElement === el.title || document.activeElement === el.tag)){
+      // quick add via Enter in title/tag
+      e.preventDefault();
+      addTask();
+      return;
+    }
+  });
+
+  // Init
+  load();
+  el.todayLabel.textContent = fmtDate();
+  el.addBtn.onclick = addTask; // ensure default
+  render();
+})();
+</script>
+</body>
+</html>
