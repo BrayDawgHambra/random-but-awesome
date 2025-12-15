@@ -1,1 +1,435 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Worldwide New Year Countdown — 2026</title>
+  <style>
+    :root{
+      --bg:#0f1724;
+      --card:#0b1220;
+      --accent:#ffd166;
+      --muted:#94a3b8;
+      --glass: rgba(255,255,255,0.03);
+      --success:#7fe3a6;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background:linear-gradient(180deg,var(--bg),#071021);
+      color:#e6eef8;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+    main{max-width:980px;margin:28px auto;padding:20px}
+    h1{margin:0 0 8px;font-size:1.6rem}
+    .muted{color:var(--muted)}
+    #controls{display:flex;gap:12px;align-items:center;margin:12px 0;flex-wrap:wrap}
+    button{background:var(--accent);border:0;padding:8px 12px;border-radius:8px;color:#05202b;font-weight:600;cursor:pointer}
+    #countdown-card{background:linear-gradient(180deg,var(--card),#071320);padding:18px;border-radius:12px;box-shadow:0 6px 30px rgba(2,6,23,0.6);margin-top:12px}
+    #tz-label{margin:0;font-size:1.25rem}
+    #time-remaining{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;font-size:2.25rem;margin:10px 0;color:var(--accent)}
+    #local-times{display:flex;gap:10px;flex-wrap:wrap}
+    .time-small{background:var(--glass);padding:6px 10px;border-radius:8px;color:var(--muted);font-size:0.95rem}
+    #status{margin-top:8px}
+    #timeline{margin-top:18px}
+    #zones-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:8px}
+    .zone{
+      padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);
+      display:flex;flex-direction:column;gap:6px;font-size:0.9rem;
+    }
+    .zone .offset{font-weight:600}
+    .zone .when{color:var(--muted);font-size:0.85rem}
+    .zone.done{background:linear-gradient(90deg, rgba(127,227,166,0.08), rgba(255,209,102,0.04));border:1px solid rgba(127,227,166,0.06)}
+    footer{margin-top:18px;color:var(--muted)}
+    #next-btn{background:#6cc; color:#012; padding:8px 10px; border-radius:8px; border:0}
+    @media (max-width:560px){
+      #time-remaining{font-size:1.6rem}
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Worldwide New Year Countdown — 2026</h1>
+    <p class="muted">Countdown cycles through every UTC offset (15‑minute increments included). When a timezone hits midnight (local), an instrumental Auld Lang Syne plays and then the countdown advances to the next timezone.</p>
 
+    <section id="controls">
+      <button id="enable-sound">Enable Sound</button>
+      <label><input type="checkbox" id="auto-start" checked> Auto-play countdowns</label>
+      <button id="next-btn" style="display:none">Next</button>
+      <div style="margin-left:auto;color:var(--muted)">Year: <span id="year-label">2026</span></div>
+    </section>
+
+    <section id="countdown-card">
+      <h2 id="tz-label">—</h2>
+      <div id="time-remaining">Loading…</div>
+      <div id="local-times"></div>
+      <div id="status" class="muted"></div>
+    </section>
+
+    <section id="timeline">
+      <h3>All timezones (UTC offsets every 15 minutes)</h3>
+      <div id="zones-list"></div>
+    </section>
+
+    <footer>
+      <small>Instrumental Auld Lang Syne synthesized with WebAudio. Click "Enable Sound" to allow playback.</small>
+    </footer>
+  </main>
+
+  <script>
+  // Single-file Worldwide New Year Countdown — 2026
+  (function(){
+    // Config
+    let targetYear = 2026;
+    const offsetStepMinutes = 15;   // every 15 minutes to include quarter-hour offsets
+    const tickIntervalMs = 200;     // countdown UI tick
+
+    // DOM
+    const tzLabelEl = document.getElementById('tz-label');
+    const timeRemainingEl = document.getElementById('time-remaining');
+    const localTimesEl = document.getElementById('local-times');
+    const statusEl = document.getElementById('status');
+    const zonesListEl = document.getElementById('zones-list');
+    const enableSoundBtn = document.getElementById('enable-sound');
+    const autoStartCheckbox = document.getElementById('auto-start');
+    const nextBtn = document.getElementById('next-btn');
+    const yearLabel = document.getElementById('year-label');
+
+    // Audio setup
+    let audioCtx = null;
+    let audioAllowed = false;
+    enableSoundBtn.addEventListener('click', async () => {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      try {
+        await audioCtx.resume();
+        audioAllowed = true;
+        enableSoundBtn.textContent = 'Sound enabled';
+        enableSoundBtn.disabled = true;
+        statusEl.textContent = 'Audio enabled — celebrations will play when a timezone hits midnight.';
+      } catch (e) {
+        statusEl.textContent = 'Unable to enable audio: ' + String(e);
+      }
+    });
+
+    // Build offsets (-12:00 to +14:00 inclusive)
+    function buildOffsets() {
+      const offsets = [];
+      const min = -12 * 60;
+      const max = 14 * 60;
+      for (let m = min; m <= max; m += offsetStepMinutes) {
+        offsets.push({
+          minutes: m,
+          label: formatUTCOffset(m)
+        });
+      }
+      return offsets;
+    }
+
+    function formatUTCOffset(totalMinutes) {
+      const sign = totalMinutes >= 0 ? '+' : '-';
+      const abs = Math.abs(totalMinutes);
+      const h = Math.floor(abs / 60);
+      const m = abs % 60;
+      return `UTC${sign}${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+    }
+
+    // Compute the UTC epoch milliseconds for local midnight of targetYear at given offset
+    function eventUtcForOffset(offsetMinutes, year) {
+      // local time at target zone: year-01-01T00:00:00 (local)
+      // UTC millis = Date.UTC(year,0,1,0,0,0) - offsetMinutes*60000
+      return Date.UTC(year, 0, 1, 0, 0, 0) - offsetMinutes * 60_000;
+    }
+
+    // Utility to format remaining time
+    function formatRemaining(ms) {
+      if (ms <= 0) return '00:00:00.0';
+      const totalSeconds = Math.floor(ms / 1000);
+      const days = Math.floor(totalSeconds / 86400);
+      let s = totalSeconds % 86400;
+      const hrs = Math.floor(s / 3600);
+      s %= 3600;
+      const mins = Math.floor(s / 60);
+      const secs = s % 60;
+      const tenths = Math.floor((ms % 1000) / 100);
+      const dPart = days > 0 ? (days + 'd ') : '';
+      return `${dPart}${String(hrs).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}.${tenths}`;
+    }
+
+    // Musical playback: a simple synthesized Auld Lang Syne
+    const noteFreq = (() => {
+      const A4 = 440;
+      const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+      return function(note) {
+        const m = note.match(/^([A-G]#?)(-?\d+)$/);
+        if (!m) return 440;
+        const name = m[1], oct = parseInt(m[2],10);
+        const n = names.indexOf(name);
+        const semisFromA4 = (oct - 4) * 12 + (n - 9);
+        return A4 * Math.pow(2, semisFromA4 / 12);
+      };
+    })();
+
+    // Simple melody (short recognizable arrangement)
+    const auldMelody = [
+      ["G4",0.5],["B4",0.5],["D5",1.0],["B4",1.0],
+      ["G4",0.5],["E4",0.5],["G4",1.0],
+      ["B4",0.5],["D5",0.5],["E5",1.5],["D5",0.5],
+      ["B4",0.5],["G4",1.5],
+      ["D5",0.5],["B4",0.5],["G4",1.0],
+      ["E5",0.5],["D5",0.5],["B4",1.5],
+      ["G4",0.5],["B4",0.5],["D5",1.0],["B4",1.0],
+      ["G4",0.5],["E4",0.5],["G4",1.5]
+    ];
+
+    function songDurationMs() {
+      const seconds = auldMelody.reduce((s,[_,d]) => s + d,0);
+      return Math.round((seconds + 0.15) * 1000);
+    }
+
+    // Play the melody using WebAudio, returns a Promise resolved when done.
+    // If audio isn't allowed by browser, it still waits the duration but no sound plays.
+    function playAuldLangSyne() {
+      const duration = songDurationMs();
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+      // If not allowed, do not attempt to produce sound; still delay for song duration so timing is consistent.
+      if (!audioAllowed) {
+        statusEl.textContent = 'Audio blocked by browser; click "Enable Sound" to allow playback.';
+        return new Promise(resolve => setTimeout(resolve, duration));
+      }
+
+      return new Promise(resolve => {
+        const now = audioCtx.currentTime + 0.05;
+        const master = audioCtx.createGain();
+        master.gain.value = 0.9;
+        master.connect(audioCtx.destination);
+
+        // light reverb via feedback delay (simple)
+        const delay = audioCtx.createDelay();
+        delay.delayTime.value = 0.18;
+        const fb = audioCtx.createGain();
+        fb.gain.value = 0.2;
+        delay.connect(fb);
+        fb.connect(delay);
+        delay.connect(master);
+
+        const leadGain = audioCtx.createGain();
+        leadGain.gain.value = 0.9;
+        leadGain.connect(delay);
+
+        const bassGain = audioCtx.createGain();
+        bassGain.gain.value = 0.22;
+        bassGain.connect(master);
+
+        let time = now;
+        for (let i = 0; i < auldMelody.length; i++) {
+          const [note, dur] = auldMelody[i];
+          const freq = noteFreq(note);
+          // lead oscillator
+          const o = audioCtx.createOscillator();
+          o.type = 'triangle';
+          o.frequency.setValueAtTime(freq, time);
+          const g = audioCtx.createGain();
+          g.gain.setValueAtTime(0.0001, time);
+          g.gain.linearRampToValueAtTime(1.0, time + 0.02);
+          g.gain.linearRampToValueAtTime(0.0001, time + dur - 0.02);
+          o.connect(g).connect(leadGain);
+          o.start(time);
+          o.stop(time + dur + 0.03);
+
+          // bass on every second note
+          if (i % 2 === 0) {
+            const o2 = audioCtx.createOscillator();
+            o2.type = 'sine';
+            o2.frequency.setValueAtTime(freq/2, time);
+            const g2 = audioCtx.createGain();
+            g2.gain.setValueAtTime(0.0001, time);
+            g2.gain.linearRampToValueAtTime(0.6, time + 0.03);
+            g2.gain.linearRampToValueAtTime(0.0001, time + dur - 0.05);
+            o2.connect(g2).connect(bassGain);
+            o2.start(time);
+            o2.stop(time + dur + 0.05);
+          }
+          time += dur * 0.98;
+        }
+
+        setTimeout(() => resolve(), duration);
+      });
+    }
+
+    // Application state
+    const offsets = buildOffsets(); // array of {minutes,label}
+    let doneFlags = new Array(offsets.length).fill(false); // per-year done flags
+    let currentIndex = -1;
+    let currentEventUtc = null;
+    let tickTimer = null;
+
+    // Build and render zones list
+    function updateZonesList() {
+      zonesListEl.innerHTML = '';
+      const now = Date.now();
+      offsets.forEach((off, idx) => {
+        const eventUtc = eventUtcForOffset(off.minutes, targetYear);
+        const el = document.createElement('div');
+        el.className = 'zone' + (doneFlags[idx] ? ' done' : '');
+        const offsetDiv = document.createElement('div');
+        offsetDiv.className = 'offset';
+        offsetDiv.textContent = off.label;
+        const whenDiv = document.createElement('div');
+        whenDiv.className = 'when';
+        const dt = new Date(eventUtc);
+        whenDiv.textContent = dt.toLocaleString();
+        el.appendChild(offsetDiv);
+        el.appendChild(whenDiv);
+        zonesListEl.appendChild(el);
+      });
+      yearLabel.textContent = String(targetYear);
+    }
+
+    // Find the next event: returns {index,eventUtc} or null if none (shouldn't happen unless year advanced)
+    function findNextEvent() {
+      const now = Date.now();
+      let candidate = null;
+      offsets.forEach((off, idx) => {
+        const evt = eventUtcForOffset(off.minutes, targetYear);
+        if (evt >= now && !doneFlags[idx]) {
+          if (candidate === null || evt < candidate.eventUtc) {
+            candidate = {index: idx, eventUtc: evt};
+          }
+        }
+      });
+      return candidate;
+    }
+
+    // Advance to next event, possibly increasing year if needed
+    function scheduleNextEvent() {
+      let next = findNextEvent();
+      if (!next) {
+        // All offsets done for this year; advance year and reset done flags
+        targetYear += 1;
+        doneFlags = new Array(offsets.length).fill(false);
+        updateZonesList();
+        next = findNextEvent();
+      }
+      if (next) {
+        startCountdownFor(next.index);
+      } else {
+        // fallback (shouldn't happen): try again later
+        statusEl.textContent = 'No upcoming events found; retrying in 2s...';
+        setTimeout(scheduleNextEvent, 2000);
+      }
+    }
+
+    // Start countdown for given offset index
+    function startCountdownFor(idx) {
+      currentIndex = idx;
+      currentEventUtc = eventUtcForOffset(offsets[idx].minutes, targetYear);
+      const off = offsets[idx];
+      tzLabelEl.textContent = `${off.label} — local midnight (${new Date(currentEventUtc).toLocaleString()})`;
+      statusEl.textContent = 'Counting down...';
+      updateLocalTimes(currentEventUtc, off.minutes);
+      updateZonesList();
+      // Show/hide Next button depending on auto-start
+      nextBtn.style.display = autoStartCheckbox.checked ? 'none' : 'inline-block';
+
+      if (tickTimer) {
+        clearInterval(tickTimer);
+      }
+      tickTimer = setInterval(tick, tickIntervalMs);
+      tick(); // immediate update
+    }
+
+    function updateLocalTimes(eventUtc, offsetMinutes) {
+      localTimesEl.innerHTML = '';
+      // Show UTC time and user's local time
+      const utcDiv = document.createElement('div');
+      utcDiv.className = 'time-small';
+      utcDiv.textContent = 'UTC: ' + new Date(eventUtc).toUTCString();
+      localTimesEl.appendChild(utcDiv);
+
+      const userDiv = document.createElement('div');
+      userDiv.className = 'time-small';
+      userDiv.textContent = 'Your local: ' + new Date(eventUtc).toLocaleString();
+      localTimesEl.appendChild(userDiv);
+
+      // Show target zone's "wall-clock" label
+      const zoneDiv = document.createElement('div');
+      zoneDiv.className = 'time-small';
+      const h = Math.floor(Math.abs(offsetMinutes)/60).toString().padStart(2,'0');
+      const m = (Math.abs(offsetMinutes)%60).toString().padStart(2,'0');
+      zoneDiv.textContent = `Zone local: 00:00 on ${targetYear}-01-01 (${offsets.find(o=>o.minutes===offsetMinutes).label})`;
+      localTimesEl.appendChild(zoneDiv);
+    }
+
+    function tick() {
+      if (!currentEventUtc) return;
+      const remain = currentEventUtc - Date.now();
+      timeRemainingEl.textContent = formatRemaining(remain);
+      // highlight soon
+      if (remain <= 60_000 && remain > 0) {
+        statusEl.textContent = 'Less than a minute to go...';
+      }
+      if (remain <= 0) {
+        // reached
+        clearInterval(tickTimer);
+        tickTimer = null;
+        timeRemainingEl.textContent = '00:00:00.0';
+        const offLabel = offsets[currentIndex].label;
+        statusEl.textContent = `Happy New Year — ${offLabel}! Playing celebration...`;
+        // mark done for this index
+        doneFlags[currentIndex] = true;
+        updateZonesList();
+        // play song, then move to next
+        playAuldLangSyne().then(() => {
+          statusEl.textContent = `Celebration finished for ${offLabel}.`;
+          // if auto-start enabled, schedule next automatically; otherwise show Next button for manual advance
+          if (autoStartCheckbox.checked) {
+            setTimeout(() => scheduleNextEvent(), 400); // tiny delay to let UI update
+          } else {
+            nextBtn.style.display = 'inline-block';
+          }
+        });
+      }
+    }
+
+    // Next button handler (manual progression)
+    nextBtn.addEventListener('click', () => {
+      nextBtn.style.display = 'none';
+      scheduleNextEvent();
+    });
+
+    // When auto-start changed, hide/show Next button accordingly
+    autoStartCheckbox.addEventListener('change', () => {
+      nextBtn.style.display = autoStartCheckbox.checked ? 'none' : (currentIndex>=0 ? 'inline-block' : 'none');
+    });
+
+    // Initialize
+    function init() {
+      updateZonesList();
+      // If some events for targetYear are in the past (relative to now), mark them done initially
+      const now = Date.now();
+      offsets.forEach((off,idx) => {
+        const evt = eventUtcForOffset(off.minutes, targetYear);
+        if (evt < now) doneFlags[idx] = true;
+      });
+      updateZonesList();
+      scheduleNextEvent();
+    }
+
+    // Kick off
+    init();
+
+    // Expose a small keyboard shortcut: press N to skip to next (works even if auto-start)
+    window.addEventListener('keydown', (e) => {
+      if (e.key.toLowerCase() === 'n') {
+        scheduleNextEvent();
+      }
+    });
+
+  })();
+  </script>
+</body>
+</html>
