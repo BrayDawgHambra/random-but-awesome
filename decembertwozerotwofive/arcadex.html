@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Arcadex</title>
+
+<style>
+:root{
+  --bg:#0b0f17;
+  --card:#121a27;
+  --text:#e7eefc;
+  --muted:#9bb0d1;
+  --accent:#6aa9ff;
+  --border:rgba(255,255,255,.08);
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  background:
+    radial-gradient(1200px 600px at 20% -10%, rgba(106,169,255,.25), transparent),
+    radial-gradient(900px 500px at 90% 0%, rgba(147,112,219,.22), transparent),
+    var(--bg);
+  color:var(--text);
+}
+main{max-width:820px;margin:0 auto;padding:28px 16px 40px}
+.panel{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:18px;
+  margin-bottom:18px;
+}
+h1,h2{margin:0 0 10px}
+p{margin:0 0 14px;color:var(--muted)}
+.btn{
+  background:var(--accent);
+  border:none;
+  border-radius:12px;
+  padding:12px 18px;
+  font-weight:700;
+  cursor:pointer;
+}
+.btn.big{font-size:1.2rem;padding:16px 22px}
+.btn.ghost{
+  background:transparent;
+  color:var(--text);
+  border:1px solid var(--border);
+}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.input{
+  flex:1;
+  padding:12px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:#0d1320;
+  color:var(--text);
+}
+.list{list-style:none;padding:0;margin:0}
+.list li{
+  padding:8px 0;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+a{color:var(--accent);text-decoration:none}
+.small{font-size:.85rem;color:var(--muted)}
+.footer{text-align:center;color:var(--muted);font-size:.9rem;margin-top:24px}
+.hidden{display:none}
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.6);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.modalCard{
+  background:var(--card);
+  border-radius:16px;
+  width:min(520px,90vw);
+  padding:16px;
+}
+.modalTop{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:10px;
+}
+</style>
+</head>
+
+<body>
+<main>
+
+  <!-- HEADER -->
+  <section class="panel">
+    <h1>🎮 Arcadex</h1>
+    <p>Your personal browser arcade.</p>
+    <p class="small">One click. One random game. Zero thinking.</p>
+  </section>
+
+  <!-- LAUNCHER -->
+  <section class="panel">
+    <button id="launchBtn" class="btn big">🎲 Launch Random Game</button>
+
+    <p class="small" style="margin-top:12px">
+      Last launch:
+      <a id="lastLink" href="#" target="_blank">—</a>
+    </p>
+
+    <div class="row" style="margin-top:10px">
+      <button id="shuffleBtn" class="btn ghost">🔀 Shuffle</button>
+      <button id="resetBtn" class="btn ghost">♻️ Reset Defaults</button>
+    </div>
+  </section>
+
+  <!-- HISTORY -->
+  <section class="panel">
+    <h2>Recent Launches</h2>
+    <ul id="history" class="list"></ul>
+  </section>
+
+  <!-- ADD SITE -->
+  <section class="panel">
+    <h2>Add a Game Site</h2>
+    <p class="small">Game sites only (Poki, CrazyGames, Itch.io, etc.)</p>
+
+    <div class="row">
+      <input id="nameInput" class="input" placeholder="Site name" />
+      <input id="urlInput" class="input" placeholder="https://example.com" />
+      <button id="addBtn" class="btn">Add</button>
+    </div>
+
+    <div class="row" style="margin-top:10px">
+      <button id="viewBtn" class="btn ghost">📋 View / Remove Sites</button>
+    </div>
+  </section>
+
+  <footer class="footer">
+    Arcadex • Built for GitHub Pages • Pure HTML/CSS/JS
+  </footer>
+
+</main>
+
+<!-- MODAL -->
+<div id="modal" class="modal hidden">
+  <div class="modalCard">
+    <div class="modalTop">
+      <h2>Arcadex Game Sites</h2>
+      <button id="closeModal" class="btn ghost">✕</button>
+    </div>
+    <ul id="sitesList" class="list"></ul>
+  </div>
+</div>
+
+<script>
+const DEFAULT_SITES = [
+  { name:"Poki", url:"https://poki.com" },
+  { name:"CrazyGames", url:"https://www.crazygames.com" },
+  { name:"Itch.io", url:"https://itch.io/games" },
+  { name:"Miniclip", url:"https://www.miniclip.com/games/en/" },
+  { name:"Coolmath Games", url:"https://www.coolmathgames.com" },
+  { name:"Neal.fun", url:"https://neal.fun" }
+];
+
+const $ = id => document.getElementById(id);
+
+let sites = JSON.parse(localStorage.getItem("arcadex_sites")) || [...DEFAULT_SITES];
+let history = JSON.parse(localStorage.getItem("arcadex_history")) || [];
+
+function save(){
+  localStorage.setItem("arcadex_sites", JSON.stringify(sites));
+  localStorage.setItem("arcadex_history", JSON.stringify(history));
+}
+
+function launchRandom(){
+  if(!sites.length) return;
+  const site = sites[Math.floor(Math.random()*sites.length)];
+  window.open(site.url, "_blank");
+
+  $("lastLink").textContent = site.name;
+  $("lastLink").href = site.url;
+
+  history.unshift(site);
+  history = history.slice(0,5);
+  save();
+  renderHistory();
+}
+
+function renderHistory(){
+  $("history").innerHTML =
+    history.map(s=>`<li><a href="${s.url}" target="_blank">${s.name}</a></li>`).join("")
+    || "<li class='small'>No launches yet</li>";
+}
+
+function renderSites(){
+  $("sitesList").innerHTML = sites.map((s,i)=>`
+    <li>
+      <a href="${s.url}" target="_blank">${s.name}</a>
+      <button class="btn ghost" onclick="removeSite(${i})">🗑</button>
+    </li>
+  `).join("");
+}
+
+window.removeSite = i => {
+  sites.splice(i,1);
+  save();
+  renderSites();
+};
+
+$("launchBtn").onclick = launchRandom;
+$("shuffleBtn").onclick = () => { sites.sort(()=>Math.random()-0.5); save(); };
+$("resetBtn").onclick = () => { sites=[...DEFAULT_SITES]; history=[]; save(); renderHistory(); };
+
+$("addBtn").onclick = () => {
+  const name = $("nameInput").value.trim();
+  const url = $("urlInput").value.trim();
+  if(!name || !url) return;
+  sites.push({name,url});
+  $("nameInput").value="";
+  $("urlInput").value="";
+  save();
+};
+
+$("viewBtn").onclick = () => { renderSites(); $("modal").classList.remove("hidden"); };
+$("closeModal").onclick = () => $("modal").classList.add("hidden");
+
+renderHistory();
+</script>
+</body>
+</html>
