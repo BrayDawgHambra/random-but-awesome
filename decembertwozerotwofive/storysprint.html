@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>StorySprint — Choose Your Own Adventure</title>
+<style>
+:root{
+  --bg:#0b0f17; --card:#121a27; --text:#e7eefc; --muted:#9bb0d1;
+  --accent:#6aa9ff; --border:rgba(255,255,255,.08); --ok:#56d364;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  background:
+    radial-gradient(1200px 600px at 15% -10%, rgba(106,169,255,.22), transparent),
+    radial-gradient(900px 500px at 90% 0%, rgba(147,112,219,.18), transparent),
+    var(--bg);
+  color:var(--text);
+}
+main{max-width:980px;margin:0 auto;padding:26px 16px 40px}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px}
+h1,h2{margin:0 0 10px}
+p{margin:0 0 12px;color:var(--muted)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.input, select{
+  flex:1; min-width:220px; padding:12px; border-radius:10px;
+  border:1px solid var(--border); background:#0d1320; color:var(--text);
+}
+.btn{
+  background:var(--accent); border:none; border-radius:12px; padding:12px 16px;
+  font-weight:700; cursor:pointer;
+}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
+.btn.small{padding:8px 10px;border-radius:10px;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:860px){ .grid{grid-template-columns:1fr} }
+.storyBox{
+  padding:12px; border-radius:12px;
+  border:1px solid var(--border); background:#0d1320; color:var(--text);
+  min-height:140px;
+  line-height:1.5;
+}
+.choiceBox{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.choiceBox button{width:100%; text-align:left}
+.small{font-size:.86rem;color:var(--muted)}
+.footer{text-align:center;color:var(--muted);font-size:.9rem;margin-top:22px}
+.ok{color:var(--ok);font-weight:800}
+hr{border:none;border-top:1px solid var(--border);margin:12px 0}
+</style>
+</head>
+<body>
+<main>
+
+  <section class="panel">
+    <h1>📖 StorySprint</h1>
+    <p>Choose-your-own-adventure game. Your progress auto-saves in your browser.</p>
+  </section>
+
+  <section class="panel">
+    <div class="grid">
+      <div>
+        <h2>Start</h2>
+        <div class="row">
+          <select id="storySelect" class="input">
+            <option value="space">🚀 Space Rescue</option>
+            <option value="haunted">👻 Haunted Arcade</option>
+            <option value="island">🏝 Mysterious Island</option>
+          </select>
+          <button id="start" class="btn">Start / Resume</button>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <button id="restart" class="btn ghost">Restart</button>
+          <button id="copyLog" class="btn ghost">Copy log</button>
+          <span id="status" class="small"></span>
+        </div>
+
+        <p class="small" style="margin-top:12px">
+          Tip: You can close the tab and come back later — it will remember where you left off.
+        </p>
+      </div>
+
+      <div>
+        <h2>Story</h2>
+        <div id="storyText" class="storyBox">Pick a story and press Start.</div>
+        <div id="choices" class="choiceBox"></div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    StorySprint • Browser-only • Pure HTML/CSS/JS
+  </footer>
+
+<script>
+const $ = (id)=>document.getElementById(id);
+
+const STORIES = {
+  space: {
+    title: "Space Rescue",
+    nodes: {
+      start: {
+        text: "You wake to sirens. Your ship is drifting near a debris field. A distress beacon blinks: a tiny shuttle is trapped and losing oxygen.",
+        choices: [
+          { label: "Suit up and spacewalk to the shuttle.", next: "spacewalk" },
+          { label: "Try towing it with the ship’s grappler arm.", next: "grappler" },
+          { label: "Scan the debris field for a safe route first.", next: "scan" }
+        ]
+      },
+      scan: {
+        text: "You run a scan. The debris is moving in a slow spiral. There’s a narrow gap that opens every 18 seconds.",
+        choices: [
+          { label: "Time the gap and approach slowly.", next: "gap" },
+          { label: "Blast the debris with thrusters to clear space.", next: "thrusters" }
+        ]
+      },
+      gap: {
+        text: "You nail the timing. The shuttle is close enough to hear its hull creak. A voice crackles: “Please… hurry.”",
+        choices: [
+          { label: "Dock and transfer oxygen.", next: "dock" },
+          { label: "Pull them into your ship with the airlock tether.", next: "tether" }
+        ]
+      },
+      thrusters: {
+        text: "The thrusters kick debris outward… and something bigger tumbles toward you — a dead satellite the size of a bus.",
+        choices: [
+          { label: "Hard roll to avoid it.", next: "roll" },
+          { label: "Emergency brake and let it pass.", next: "brake" }
+        ]
+      },
+      roll: {
+        text: "You roll cleanly but lose visual on the shuttle. It’s now behind the debris swirl.",
+        choices: [
+          { label: "Spacewalk with beacon tracker.", next: "spacewalk" },
+          { label: "Use the grappler arm blindly (risky).", next: "grappler" }
+        ]
+      },
+      brake: {
+        text: "You brake just in time. The satellite scrapes past, sparks flashing like fireworks. The shuttle’s beacon is still visible.",
+        choices: [
+          { label: "Go for the timed gap route.", next: "gap" },
+          { label: "Spacewalk with a tether line.", next: "spacewalk" }
+        ]
+      },
+      grappler: {
+        text: "The grappler arm extends… and clamps onto the shuttle! But the debris field tugs it sideways. You have seconds before the arm overloads.",
+        choices: [
+          { label: "Reel in fast (could snap).", next: "reelFast" },
+          { label: "Reel in slow while stabilizing with thrusters.", next: "reelSlow" }
+        ]
+      },
+      reelFast: {
+        text: "You reel in fast — the arm groans — then SLAMS the shuttle into your docking ring. The hatch pops. The pilot crawls out, alive.",
+        choices: [
+          { label: "END: You saved them — messy but heroic. 🏁", next: "end_good" }
+        ]
+      },
+      reelSlow: {
+        text: "You stabilize, reel in carefully… and dock cleanly. The pilot hands you a data chip: “They don’t want us to reach the station.”",
+        choices: [
+          { label: "END: Rescue complete… and a mystery begins. 🏁", next: "end_mystery" }
+        ]
+      },
+      spacewalk: {
+        text: "You step into the void. Stars everywhere. The beacon leads you to the shuttle — its hatch is jammed by a bent panel.",
+        choices: [
+          { label: "Cut the panel with a laser tool.", next: "laser" },
+          { label: "Try forcing it open with leverage.", next: "leverage" }
+        ]
+      },
+      laser: {
+        text: "The laser slices clean… but the heat ignites drifting fuel vapors. Fire blooms in slow motion.",
+        choices: [
+          { label: "Kick off and retreat to your ship!", next: "retreat" },
+          { label: "Seal the shuttle hatch and tow it immediately.", next: "tether" }
+        ]
+      },
+      retreat: {
+        text: "You retreat, heart pounding. The shuttle survives the flare — barely. The pilot is coughing but conscious.",
+        choices: [
+          { label: "END: You saved them and survived. 🏁", next: "end_good" }
+        ]
+      },
+      leverage: {
+        text: "You wedge a bar, strain, and POP — the hatch opens. Inside, the pilot points to the dashboard: oxygen at 2%.",
+        choices: [
+          { label: "Transfer your emergency oxygen tank.", next: "oxygen" },
+          { label: "Carry the pilot back to your ship now.", next: "carry" }
+        ]
+      },
+      oxygen: {
+        text: "You transfer oxygen. The pilot breathes again. “Thank you… I thought I was done.”",
+        choices: [
+          { label: "END: Clean rescue. 🏁", next: "end_good" }
+        ]
+      },
+      carry: {
+        text: "You haul the pilot across the tether. Halfway back, a debris shard slices your line.",
+        choices: [
+          { label: "Grab the pilot and push toward the airlock.", next: "push" },
+          { label: "Let go of the pilot to save yourself (dark).", next: "end_bad" }
+        ]
+      },
+      push: {
+        text: "You push hard. You slam into the airlock, bruised but alive. The pilot tumbles in after you.",
+        choices: [
+          { label: "END: You both made it. 🏁", next: "end_good" }
+        ]
+      },
+      tether: {
+        text: "You secure a tether and pull the shuttle in. The pilot survives — and whispers: “Someone sabotaged my nav.”",
+        choices: [
+          { label: "END: Rescue complete, danger unknown. 🏁", next: "end_mystery" }
+        ]
+      },
+      dock: {
+        text: "You dock and equalize pressure. The pilot steps out, shaking, and hands you coordinates: “Don’t trust the station.”",
+        choices: [
+          { label: "END: You saved them… but who’s lying? 🏁", next: "end_mystery" }
+        ]
+      },
+      end_good: { text: "✅ The rescue is a success. You log the mission and watch the stars calm down again.", choices: [] },
+      end_mystery: { text: "🕵️ The rescue worked… but you’re now carrying a secret that might get you hunted.", choices: [] },
+      end_bad: { text: "💀 You survive… but the guilt becomes your new shadow. Not every ending is heroic.", choices: [] },
+    }
+  },
+
+  haunted: {
+    title: "Haunted Arcade",
+    nodes: {
+      start: {
+        text: "You enter an abandoned arcade. The machines flicker even though there’s no power. A cabinet labeled 'ARCADEX' hums like it knows your name.",
+        choices: [
+          { label: "Play the ARCADEX machine.", next: "play" },
+          { label: "Check the back room for a breaker panel.", next: "backroom" },
+          { label: "Leave. Absolutely not.", next: "leave" }
+        ]
+      },
+      leave: {
+        text: "You step outside… and the door locks behind you. The neon OPEN sign glows brighter. The arcade wants one more player.",
+        choices: [
+          { label: "Play the machine (fine).", next: "play" },
+          { label: "Kick the door open.", next: "kick" }
+        ]
+      },
+      kick: {
+        text: "You kick the door. It doesn’t move. A high score list appears on the window… and your name is already at #1.",
+        choices: [
+          { label: "Play the machine.", next: "play" }
+        ]
+      },
+      backroom: {
+        text: "In the back room, you find a dusty security monitor. It shows you… standing in the arcade… but you’re not moving.",
+        choices: [
+          { label: "Unplug the monitor.", next: "unplug" },
+          { label: "Run back to the arcade floor.", next: "run" }
+        ]
+      },
+      unplug: {
+        text: "The monitor goes black. A whisper: “You can’t unplug a memory.” The ARCADEX machine boots up on its own.",
+        choices: [
+          { label: "Play.", next: "play" }
+        ]
+      },
+      run: {
+        text: "You sprint out. The ARCADEX cabinet is open, revealing a slot… shaped like a hand.",
+        choices: [
+          { label: "Put your hand in (risky).", next: "hand" },
+          { label: "Play normally.", next: "play" }
+        ]
+      },
+      hand: {
+        text: "The cabinet grabs you — not hard, just… firmly. A screen flashes: ‘ONE CREDIT = ONE MEMORY.’",
+        choices: [
+          { label: "Pull away and play normally.", next: "play" },
+          { label: "Accept the trade.", next: "trade" }
+        ]
+      },
+      trade: {
+        text: "A childhood memory vanishes — you can feel the hole. In exchange, the arcade door clicks open.",
+        choices: [
+          { label: "END: You escaped… but missing a piece of yourself. 🏁", next: "end_weird" }
+        ]
+      },
+      play: {
+        text: "The game starts. Your character runs through a pixel hallway identical to this arcade. A power-up appears: ‘TRUTH’ or ‘EXIT’.",
+        choices: [
+          { label: "Pick TRUTH.", next: "truth" },
+          { label: "Pick EXIT.", next: "exit" }
+        ]
+      },
+      truth: {
+        text: "The screen shows a video: the arcade in the 90s… and someone who looks exactly like you playing ARCADEX.",
+        choices: [
+          { label: "END: You learn the truth: you’ve been here before. 🏁", next: "end_truth" }
+        ]
+      },
+      exit: {
+        text: "The cabinet dings. The front door unlocks. The neon sign goes dark like it’s disappointed.",
+        choices: [
+          { label: "END: You escaped. But the machine waits. 🏁", next: "end_escape" }
+        ]
+      },
+      end_truth: { text: "🧩 The truth hits: the arcade remembers every player… and it never forgets you.", choices: [] },
+      end_escape: { text: "✅ You get out. Later, you check your pocket… and find a single arcade token labeled ARCADEX.", choices: [] },
+      end_weird: { text: "🕳 You escape, but some memories are gone forever. The arcade took its payment.", choices: [] }
+    }
+  },
+
+  island: {
+    title: "Mysterious Island",
+    nodes: {
+      start: {
+        text: "You wake on a beach. A backpack nearby contains water, a compass, and a handheld radio that only plays static… except for one phrase: “Don’t go inland.”",
+        choices: [
+          { label: "Go inland anyway.", next: "inland" },
+          { label: "Follow the shoreline.", next: "shore" },
+          { label: "Climb a palm tree to look around.", next: "palm" }
+        ]
+      },
+      palm: {
+        text: "From the top, you see smoke to the north, cliffs to the east, and something shiny deep inland — like metal.",
+        choices: [
+          { label: "Head toward the smoke.", next: "smoke" },
+          { label: "Head to the cliffs.", next: "cliffs" },
+          { label: "Investigate the shiny object inland.", next: "metal" }
+        ]
+      },
+      shore: {
+        text: "Along the shore, you find footprints… yours? The radio crackles again: “You’re looping.”",
+        choices: [
+          { label: "Follow the footprints.", next: "footprints" },
+          { label: "Break the radio and trust yourself.", next: "break" }
+        ]
+      },
+      break: {
+        text: "You smash the radio. The static stops. For a moment, the island feels… quieter. Too quiet.",
+        choices: [
+          { label: "Head toward the cliffs.", next: "cliffs" },
+          { label: "Go inland.", next: "inland" }
+        ]
+      },
+      footprints: {
+        text: "The footprints lead to a message carved in a rock: “DON’T TRUST THE COMPASS.”",
+        choices: [
+          { label: "Throw away the compass.", next: "noCompass" },
+          { label: "Keep it but don’t rely on it.", next: "cliffs" }
+        ]
+      },
+      noCompass: {
+        text: "You ditch the compass. Immediately, the trees seem less confusing — like the island is disappointed you’re harder to trick.",
+        choices: [
+          { label: "Go to the smoke.", next: "smoke" },
+          { label: "Go to the cliffs.", next: "cliffs" }
+        ]
+      },
+      inland: {
+        text: "The jungle is dense. The compass spins wildly. You hear faint beeping… like a countdown.",
+        choices: [
+          { label: "Follow the beeping.", next: "metal" },
+          { label: "Turn back to the beach.", next: "start" }
+        ]
+      },
+      smoke: {
+        text: "You reach the smoke and find a campfire… still warm. A note: “If you found this, you’re the new me.”",
+        choices: [
+          { label: "Search the camp.", next: "camp" },
+          { label: "Call out: “Hello?!”", next: "callout" }
+        ]
+      },
+      camp: {
+        text: "You find a map with one location circled: ‘THE DOOR’ near the cliffs. The radio (if you still have it) whispers: “Correct.”",
+        choices: [
+          { label: "Go to the cliffs.", next: "cliffs" },
+          { label: "Ignore it and go deeper inland.", next: "metal" }
+        ]
+      },
+      callout: {
+        text: "No answer. But you hear your own voice echoing back… slightly delayed.",
+        choices: [
+          { label: "Run to the cliffs.", next: "cliffs" },
+          { label: "Follow the echo inland.", next: "metal" }
+        ]
+      },
+      cliffs: {
+        text: "At the cliffs, you find a metal hatch embedded in rock: ‘AUTHORIZED PERSONNEL ONLY.’ It has a keypad… and one button: ARCADEX.",
+        choices: [
+          { label: "Press ARCADEX.", next: "press" },
+          { label: "Try random keypad codes.", next: "codes" }
+        ]
+      },
+      press: {
+        text: "The hatch opens. Inside is a clean hallway with lights that flicker like an arcade machine. A sign reads: “WELCOME BACK.”",
+        choices: [
+          { label: "END: You found the Door. 🏁", next: "end_door" }
+        ]
+      },
+      codes: {
+        text: "You try codes. On the 3rd attempt, the keypad displays: “YOU DON’T REMEMBER YOUR OWN PASSWORD.” Ouch.",
+        choices: [
+          { label: "Press ARCADEX instead.", next: "press" },
+          { label: "Keep trying (risky).", next: "end_alarm" }
+        ]
+      },
+      metal: {
+        text: "Deep inland you find it: a crashed pod, still powered. The beeping is a timer. On its screen: ‘RESET ISLAND?’",
+        choices: [
+          { label: "Press RESET.", next: "end_loop" },
+          { label: "Leave it alone and head to the cliffs.", next: "cliffs" }
+        ]
+      },
+      end_door: { text: "🚪 You step inside. The island was never just an island. It was a test… and you passed.", choices: [] },
+      end_loop: { text: "🔁 You press RESET. The world flashes white… and you wake up on the beach again.", choices: [] },
+      end_alarm:{ text: "🚨 An alarm screams. The jungle goes silent. Something moves behind you. Bad choice.", choices: [] }
+    }
+  }
+};
+
+function getKey(story){ return `storysprint_${story}`; }
+
+function setStatus(msg, ok=false){
+  $("status").textContent = msg;
+  $("status").className = "small " + (ok ? "ok" : "");
+  if(msg) setTimeout(()=>{ $("status").textContent=""; $("status").className="small"; }, 1200);
+}
+
+function loadState(storyId){
+  return JSON.parse(localStorage.getItem(getKey(storyId)) || "null");
+}
+
+function saveState(storyId, state){
+  localStorage.setItem(getKey(storyId), JSON.stringify(state));
+}
+
+function startStory(){
+  const storyId = $("storySelect").value;
+  const story = STORIES[storyId];
+  const saved = loadState(storyId);
+
+  const state = saved || { nodeId: "start", log: [] };
+  render(storyId, state);
+  setStatus(saved ? "Resumed ✅" : "Started ✅", true);
+}
+
+function restartStory(){
+  const storyId = $("storySelect").value;
+  localStorage.removeItem(getKey(storyId));
+  render(storyId, { nodeId:"start", log: [] });
+  setStatus("Restarted", true);
+}
+
+function render(storyId, state){
+  const story = STORIES[storyId];
+  const node = story.nodes[state.nodeId];
+
+  const header = `<div class="small"><span class="tag">${story.title}</span></div>`;
+  const logText = state.log.length ? `<hr><div class="small"><b>Log:</b><br>${state.log.map(escapeHtml).join("<br>")}</div>` : "";
+  $("storyText").innerHTML = header + "<div style='margin-top:8px'>" + escapeHtml(node.text) + "</div>" + logText;
+
+  // choices
+  $("choices").innerHTML = "";
+  if(!node.choices || node.choices.length === 0){
+    const done = document.createElement("div");
+    done.className = "small";
+    done.textContent = "The End. Pick another story or restart.";
+    $("choices").appendChild(done);
+    saveState(storyId, state);
+    return;
+  }
+
+  node.choices.forEach(ch=>{
+    const b = document.createElement("button");
+    b.className = "btn ghost";
+    b.textContent = ch.label;
+    b.addEventListener("click", ()=>{
+      const nextState = {
+        nodeId: ch.next,
+        log: [...state.log, "• " + ch.label]
+      };
+      saveState(storyId, nextState);
+      render(storyId, nextState);
+    });
+    $("choices").appendChild(b);
+  });
+
+  saveState(storyId, state);
+}
+
+function escapeHtml(s){
+  return (s+"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+}
+
+$("start").addEventListener("click", startStory);
+$("restart").addEventListener("click", restartStory);
+
+$("copyLog").addEventListener("click", async ()=>{
+  const storyId = $("storySelect").value;
+  const st = loadState(storyId) || { log: [] };
+  const text = st.log.length ? st.log.join("\\n") : "(No choices yet)";
+  try{
+    await navigator.clipboard.writeText(text);
+    setStatus("Copied log!", true);
+  }catch(e){
+    alert("Clipboard blocked — copy manually.");
+  }
+});
+
+// Auto-load last played story if any
+(function autoResume(){
+  const storyId = $("storySelect").value;
+  const st = loadState(storyId);
+  if(st){
+    render(storyId, st);
+    setStatus("Auto-resumed", true);
+  }
+})();
+</script>
+</main>
+</body>
+</html>
