@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Boredom-Breaker AI — Pick 3–4 Keywords</title>
+  <style>
+    :root{
+      --bg:#0f1724; --card:#071427; --accent:#60a5fa; --muted:#94a3b8; --glass: rgba(255,255,255,0.03);
+      --good:#7fe3a6;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;
+      background:linear-gradient(180deg,#081229,#071021); color:#e6eef8; -webkit-font-smoothing:antialiased;
+    }
+    main{max-width:980px;margin:28px auto;padding:20px}
+    h1{margin:0 0 6px;font-size:1.6rem}
+    p.muted{color:var(--muted);margin:4px 0 16px}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:18px}
+    .panel{background:linear-gradient(180deg,var(--card),#04101a);padding:16px;border-radius:12px;box-shadow:0 8px 30px rgba(2,6,23,0.6)}
+    .keywords{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+    .category{padding:8px;border-radius:10px;background:rgba(255,255,255,0.02)}
+    .category h3{margin:0 0 8px;font-size:0.95rem}
+    .kw{display:inline-block;margin:4px 6px 6px 0;padding:6px 8px;border-radius:999px;background:rgba(255,255,255,0.03);cursor:pointer;color:var(--muted);font-size:0.9rem}
+    .kw.selected{background:linear-gradient(90deg,var(--accent),#7c3aed);color:black;font-weight:700}
+    .controls{display:flex;gap:8px;align-items:center;margin-top:12px}
+    button{background:var(--accent);border:0;padding:8px 12px;border-radius:10px;color:#022f4a;font-weight:700;cursor:pointer}
+    .small{font-size:0.9rem;color:var(--muted)}
+    #output{display:flex;flex-direction:column;gap:10px}
+    .idea{background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;display:flex;flex-direction:column;gap:8px}
+    .idea h4{margin:0}
+    .meta{display:flex;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:0.85rem}
+    .why{font-size:0.92rem;color:var(--muted)}
+    .actions{display:flex;gap:8px}
+    .right{position:sticky;top:20px}
+    .count{font-weight:700;color:var(--accent)}
+    footer{margin-top:18px;color:var(--muted);font-size:0.9rem;text-align:center}
+    @media (max-width:880px){ .grid{grid-template-columns:1fr} .right{position:static} }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Boredom-Breaker AI</h1>
+    <p class="muted">Pick 3–4 keywords from different categories (Mood, Energy, Time, Setting). The app combines them into tailored activity ideas — with brief steps, time estimate, and why it matches.</p>
+
+    <div class="grid">
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <strong>Select 3–4 keywords</strong>
+            <div class="small">Try mixing categories for better results (e.g., Creative + Low energy + 15-60 min + Indoors).</div>
+          </div>
+          <div class="small">Selected: <span id="sel-count" class="count">0</span>/4</div>
+        </div>
+
+        <div style="margin-top:12px" id="keyword-area"></div>
+
+        <div class="controls">
+          <button id="generate-btn" disabled>Get ideas</button>
+          <button id="regen-btn" style="background:#9ae6b4;color:#022;display:none">Regenerate</button>
+          <div style="margin-left:auto">
+            <button id="surprise-btn" title="Pick random keywords">Surprise me</button>
+          </div>
+        </div>
+
+        <hr style="border:none;border-top:1px solid rgba(255,255,255,0.03);margin:12px 0">
+
+        <div id="output">
+          <div id="placeholder" class="small muted">Your tailored ideas will appear here. Select keywords and click "Get ideas".</div>
+        </div>
+      </div>
+
+      <div class="panel right">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong>Tips</strong>
+          <div class="small muted">Keyboard: press R to regenerate</div>
+        </div>
+        <ul style="margin-top:10px;color:var(--muted);line-height:1.45">
+          <li>Combine different categories for richer ideas.</li>
+          <li>Click "Regenerate" for variations on the same keywords.</li>
+          <li>Use "Surprise me" if you can't decide — then refine.</li>
+        </ul>
+
+        <hr style="border:none;border-top:1px solid rgba(255,255,255,0.03);margin:12px 0">
+
+        <div>
+          <strong>Export</strong>
+          <div class="small muted" style="margin-top:6px">Copy the current ideas to clipboard.</div>
+          <div style="margin-top:8px">
+            <button id="copy-btn" style="background:#ffd166;color:#05202b">Copy ideas</button>
+            <button id="share-btn" style="display:none">Share</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>Built with simple heuristics — no servers or external APIs required. Works offline in your browser.</footer>
+  </main>
+
+  <script>
+  (function(){
+    // Categories and keywords
+    const CATEGORIES = [
+      { id: 'mood', title: 'Mood', keywords: ['Creative','Relaxed','Adventurous','Curious','Social','Reflective'] },
+      { id: 'energy', title: 'Energy', keywords: ['Low energy','Medium energy','High energy'] },
+      { id: 'time', title: 'Time', keywords: ['5-15 min','15-60 min','60+ min'] },
+      { id: 'setting', title: 'Setting/Resources', keywords: ['Indoors','Outdoors','Solo','With friends','Cheap','Learning'] }
+    ];
+
+    // Idea building blocks: maps keyword -> idea snippets
+    // Each snippet: {title, description, timeRange: [min,max] minutes, effort: low/med/high, tags: []}
+    const SNIPPETS = {
+      'Creative': [
+        { title:'Mini art challenge', description:'Pick a limited palette or medium (paper, phone drawing app) and make 3 quick pieces in 15 minutes.', time:[10,30], effort:'low', tags:['Indoors','Solo'] },
+        { title:'Write a silly one-page story', description:'Set a timer and write a short story with a twist ending. Use a random prompt if stuck.', time:[15,45], effort:'medium', tags:['Solo','Learning'] }
+      ],
+      'Relaxed': [
+        { title:'Guided micro-meditation', description:'Play a 10-min breathing/visualization (or follow a short self-guided script).', time:[5,20], effort:'low', tags:['Indoors','Solo'] },
+        { title:'Comfort snack & playlist', description:'Make a cozy snack, pick a mellow playlist, and sit by a window for 20–30 minutes.', time:[10,30], effort:'low', tags:['Indoors'] }
+      ],
+      'Adventurous': [
+        { title:'Explore a nearby trail', description:'Find a walking trail or new neighborhood and wander with no map — notice details you typically ignore.', time:[30,120], effort:'medium', tags:['Outdoors'] },
+        { title:'Try a random recipe', description:'Open a recipe you’ve never made and challenge yourself to follow it (or improvise).', time:[30,90], effort:'high', tags:['Indoors'] }
+      ],
+      'Curious': [
+        { title:'Micro-research project', description:'Pick a topic you don’t know about, watch a 15-minute video and jot down three cool facts.', time:[15,45], effort:'low', tags:['Learning','Solo'] },
+        { title:'DIY experiment', description:'Try a simple at-home experiment (kitchen chemistry, quick electronics) and record results.', time:[30,90], effort:'medium', tags:['Indoors','Learning'] }
+      ],
+      'Social': [
+        { title:'Host a themed mini-game night', description:'Gather friends for 30–60 minutes of 3 quick games (trivia, charades, or phone-based games).', time:[30,90], effort:'medium', tags:['With friends'] },
+        { title:'Write & send one thoughtful message', description:'Pick someone you haven’t talked to in a while and send a message sharing a memory.', time:[5,20], effort:'low', tags:['Solo'] }
+      ],
+      'Reflective': [
+        { title:'Gratitude mini-journal', description:'List 5 things you appreciated in the last week and one small goal for tomorrow.', time:[5,15], effort:'low', tags:['Solo'] },
+        { title:'Photo walk & reflection', description:'Take photos during a short walk; later choose one to write about why it stood out.', time:[20,60], effort:'medium', tags:['Outdoors'] }
+      ],
+      'Low energy': [
+        { title:'15-minute power nap', description:'Set an alarm and nap for 15–20 minutes — wake gently with light and water.', time:[10,25], effort:'low', tags:['Indoors'] },
+        { title:'Simple puzzle or soothing video', description:'Do a calming activity like a low-difficulty puzzle, ASMR, or nature video.', time:[10,30], effort:'low', tags:['Indoors'] }
+      ],
+      'Medium energy': [
+        { title:'Short workout', description:'20–30 minutes of bodyweight exercises or a brisk walk to refresh energy.', time:[15,40], effort:'medium', tags:['Outdoors','Solo'] },
+        { title:'Deep-clean one area', description:'Tackle one shelf or drawer for 20–45 minutes for small satisfaction and clarity.', time:[15,45], effort:'medium', tags:['Indoors'] }
+      ],
+      'High energy': [
+        { title:'Try a new sport or class', description:'Sign up for a drop-in session (climbing, dance, martial arts) or follow an intense online class.', time:[45,120], effort:'high', tags:['Outdoors','With friends'] },
+        { title:'High-intensity creative sprint', description:'Set a fast-paced challenge (build something, 1-hour coding project, or 2-song mashup).', time:[30,120], effort:'high', tags:['Solo','Learning'] }
+      ],
+      '5-15 min': [
+        { title:'Micro-challenge', description:'Do a 10-minute focused task: declutter, sketch, or free-write to reset your brain.', time:[5,15], effort:'low', tags:['Solo'] }
+      ],
+      '15-60 min': [
+        { title:'Mini-project', description:'Spend 30–60 minutes learning or making something small: cook a new dish, do a craft.', time:[20,60], effort:'medium', tags:['Indoors','Learning'] }
+      ],
+      '60+ min': [
+        { title:'Deep-dive', description:'Commit to a longer experience: day hike, workshop, learning module, or long creative session.', time:[60,300], effort:'high', tags:['Outdoors','With friends'] }
+      ],
+      'Indoors': [
+        { title:'Build a cozy nook', description:'Rearrange a corner, add light and a small comfort item, and enjoy the new vibe.', time:[20,60], effort:'low', tags:['Solo'] }
+      ],
+      'Outdoors': [
+        { title:'Nature scavenger hunt', description:'Make a list (colors, textures, plants) and find as many as you can in 30 minutes.', time:[20,60], effort:'medium', tags:['Solo','With friends'] }
+      ],
+      'Solo': [
+        { title:'Solo creative sprint', description:'Set a timer and produce something small — poem, sketch, 5-minute mini-essay.', time:[10,45], effort:'medium', tags:['Creative'] }
+      ],
+      'With friends': [
+        { title:'Micro social event', description:'Invite a friend for coffee or a quick co-op game for 20–60 minutes.', time:[20,90], effort:'medium', tags:['Social'] }
+      ],
+      'Cheap': [
+        { title:'Upcycle challenge', description:'Use household items to create something new — a home decor or small gift.', time:[30,90], effort:'medium', tags:['Indoors'] }
+      ],
+      'Learning': [
+        { title:'30-min skill sprint', description:'Choose a specific skill and learn the basics via tutorial (language, coding, craft).', time:[30,90], effort:'medium', tags:['Solo','Indoors'] }
+      ]
+    };
+
+    // UI
+    const keywordArea = document.getElementById('keyword-area');
+    const selCountEl = document.getElementById('sel-count');
+    const generateBtn = document.getElementById('generate-btn');
+    const regenBtn = document.getElementById('regen-btn');
+    const surpriseBtn = document.getElementById('surprise-btn');
+    const outputEl = document.getElementById('output');
+    const placeholder = document.getElementById('placeholder');
+    const copyBtn = document.getElementById('copy-btn');
+
+    // State
+    let selected = []; // list of keyword strings
+    let lastResults = [];
+    let rngSeed = Date.now();
+
+    // Helper: deterministic-ish RNG
+    function rnd() {
+      rngSeed = (rngSeed * 1664525 + 1013904223) >>> 0;
+      return (rngSeed / 4294967296);
+    }
+    function shuffle(arr){ return arr.slice().sort(()=>rnd()-0.5); }
+
+    // Render categories and keywords
+    function renderKeywords(){
+      keywordArea.innerHTML = '';
+      const container = document.createElement('div');
+      container.className = 'keywords';
+      CATEGORIES.forEach(cat => {
+        const c = document.createElement('div');
+        c.className = 'category';
+        const h = document.createElement('h3'); h.textContent = cat.title; c.appendChild(h);
+        cat.keywords.forEach(k => {
+          const kEl = document.createElement('div');
+          kEl.className = 'kw';
+          kEl.textContent = k;
+          if (selected.includes(k)) kEl.classList.add('selected');
+          kEl.addEventListener('click', () => toggleKeyword(k));
+          c.appendChild(kEl);
+        });
+        container.appendChild(c);
+      });
+      keywordArea.appendChild(container);
+      updateControls();
+    }
+
+    function toggleKeyword(k){
+      if (selected.includes(k)){
+        selected = selected.filter(x=>x!==k);
+      } else {
+        if (selected.length >= 4) {
+          // Replace last selected if same category as new? Simple: block and flash
+          flashNotice('Pick up to 4 keywords');
+          return;
+        }
+        selected.push(k);
+      }
+      selCountEl.textContent = String(selected.length);
+      renderKeywords();
+    }
+
+    function flashNotice(txt){
+      const n = document.createElement('div');
+      n.textContent = txt;
+      n.style.position='fixed'; n.style.right='18px'; n.style.top='18px';
+      n.style.background='rgba(0,0,0,0.6)'; n.style.padding='10px 12px'; n.style.borderRadius='8px'; n.style.zIndex=9999;
+      document.body.appendChild(n);
+      setTimeout(()=>n.remove(),1300);
+    }
+
+    function updateControls(){
+      generateBtn.disabled = selected.length < 3;
+      selCountEl.textContent = String(selected.length);
+    }
+
+    // Idea generation logic
+    function gatherCandidates(keywords){
+      const pool = [];
+      // For each selected keyword, add its snippets
+      keywords.forEach(k => {
+        if (SNIPPETS[k]) {
+          SNIPPETS[k].forEach(s => {
+            // Clone and annotate source keyword
+            pool.push(Object.assign({}, s, {source: k}));
+          });
+        }
+      });
+      // Also include snippets that match multiple selected keywords through tags
+      // We'll include all snippets across SNIPPETS for diversity
+      Object.values(SNIPPETS).flat().forEach(s => pool.push(Object.assign({}, s, {source: 'assoc'})));
+      return pool;
+    }
+
+    // Score candidates by how well they match selected keywords and tags
+    function scoreAndSelect(pool, keywords, max=5){
+      const scores = pool.map(p => {
+        let score = 0;
+        // +2 if source matches one of selected
+        if (keywords.includes(p.source)) score += 2;
+        // +1 for each tag matching a selected keyword
+        if (p.tags) {
+          p.tags.forEach(t => {
+            if (keywords.includes(t)) score += 1;
+          });
+        }
+        // Boost short/long items based on time keywords
+        keywords.forEach(k => {
+          if (k === '5-15 min' && p.time && p.time[1] <= 20) score += 1;
+          if (k === '15-60 min' && p.time && p.time[0] >= 15 && p.time[1] <= 90) score += 1;
+          if (k === '60+ min' && p.time && p.time[0] >= 45) score += 1;
+        });
+        // small random tie-breaker
+        score += rnd() * 0.2;
+        return {p, score};
+      });
+
+      // sort and pick top unique titles (avoid exact duplicates)
+      scores.sort((a,b)=>b.score - a.score);
+      const chosen = [];
+      const seen = new Set();
+      for (const s of scores){
+        if (chosen.length >= max) break;
+        const key = s.p.title + '|' + s.p.description;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        chosen.push(s.p);
+      }
+      return chosen;
+    }
+
+    // Build a short plan/steps for an idea (template-based)
+    function buildPlan(idea, keywords){
+      const steps = [];
+      // Step 1: prep
+      steps.push('Prepare: gather any small materials mentioned (phone, sketchbook, kitchen basics) — 2 min.');
+      // Step 2: action
+      if (idea.time && idea.time[1] <= 20) {
+        steps.push(`Do it for about ${Math.max(5,Math.round((idea.time[0]+idea.time[1])/2))} minutes — keep it focused.`);
+      } else {
+        steps.push(`Spend about ${Math.round((idea.time[0]+idea.time[1])/2)} minutes; break into focused blocks if needed.`);
+      }
+      // Add a creative twist if Creative or Adventurous selected
+      if (keywords.includes('Creative')) steps.push('Twist: restrict yourself (single color, single sentence, or one rule).');
+      if (keywords.includes('Adventurous')) steps.push('Twist: add one surprising element (try in a new place or with a challenge).');
+      // Closing reflection
+      steps.push('Wrap up: take one photo or jot one takeaway before moving on.');
+      return steps;
+    }
+
+    // Compose idea output block
+    function renderIdeas(ideas, keywords){
+      outputEl.innerHTML = '';
+      if (!ideas.length){
+        const n = document.createElement('div'); n.className='small muted'; n.textContent='No ideas found — try different keywords.';
+        outputEl.appendChild(n); return;
+      }
+      ideas.forEach((idea, idx) => {
+        const el = document.createElement('div'); el.className='idea';
+        const h = document.createElement('h4'); h.textContent = idea.title; el.appendChild(h);
+        const d = document.createElement('div'); d.textContent = idea.description; el.appendChild(d);
+        const meta = document.createElement('div'); meta.className='meta';
+        meta.innerHTML = `<div>Time: ${idea.time ? idea.time[0]+'–'+idea.time[1]+' min' : 'varies'}</div>` +
+                         `<div>Effort: ${idea.effort || 'medium'}</div>` +
+                         `<div>Source: ${idea.source || 'combined'}</div>`;
+        el.appendChild(meta);
+        const steps = buildPlan(idea, keywords);
+        const ul = document.createElement('ol');
+        steps.forEach(s => { const li = document.createElement('li'); li.textContent = s; ul.appendChild(li); });
+        el.appendChild(ul);
+        const why = document.createElement('div'); why.className='why';
+        why.innerHTML = `<strong>Why this fits:</strong> Matches keywords — ${keywords.join(', ')}.`;
+        el.appendChild(why);
+
+        // actions
+        const actions = document.createElement('div'); actions.className='actions';
+        const moreBtn = document.createElement('button'); moreBtn.textContent='More like this';
+        moreBtn.addEventListener('click', ()=>{ rngSeed = Date.now(); const extra = generateVariants(idea, keywords); renderIdeas(extra, keywords); regenBtn.style.display='inline-block'; });
+        actions.appendChild(moreBtn);
+        el.appendChild(actions);
+
+        outputEl.appendChild(el);
+      });
+
+      regenBtn.style.display = 'inline-block';
+    }
+
+    // Generate variants: mix other high-scoring candidates similar to base idea
+    function generateVariants(base, keywords){
+      const pool = gatherCandidates(keywords);
+      // prefer same tags
+      const sameTag = pool.filter(p => (p.tags||[]).some(t => base.tags && base.tags.includes(t)));
+      const pick = shuffle(sameTag.length ? sameTag : pool).slice(0,4);
+      return pick;
+    }
+
+    // Public actions
+    function generate(){
+      rngSeed = Date.now();
+      if (selected.length < 3) {
+        flashNotice('Pick at least 3 keywords for better suggestions.');
+        return;
+      }
+      placeholder && placeholder.remove();
+      const pool = gatherCandidates(selected);
+      const chosen = scoreAndSelect(pool, selected, 4);
+      lastResults = chosen;
+      renderIdeas(chosen, selected);
+    }
+
+    function regenerate(){
+      if (!selected.length) return;
+      rngSeed += 1;
+      const pool = gatherCandidates(selected);
+      const chosen = scoreAndSelect(pool, selected, 4);
+      lastResults = chosen;
+      renderIdeas(chosen, selected);
+    }
+
+    function surprise(){
+      // pick 3 random keywords from different categories
+      selected = [];
+      rngSeed = Date.now();
+      // choose one from first 3 categories, then optionally one from setting
+      CATEGORIES.forEach(cat => {
+        const pick = cat.keywords[Math.floor(rnd()*cat.keywords.length)];
+        selected.push(pick);
+      });
+      // Trim to 3–4 unique
+      selected = Array.from(new Set(selected)).slice(0,4);
+      renderKeywords();
+      generate();
+    }
+
+    // Copy current ideas to clipboard
+    async function copyIdeas(){
+      if (!lastResults.length) { flashNotice('No ideas to copy'); return; }
+      let text = `Ideas (keywords: ${selected.join(', ')}):\n\n`;
+      lastResults.forEach((it, i) => {
+        text += `${i+1}. ${it.title}\n   ${it.description}\n   Time: ${it.time ? it.time[0]+'–'+it.time[1]+' min' : 'varies'}\n\n`;
+      });
+      try {
+        await navigator.clipboard.writeText(text);
+        flashNotice('Copied to clipboard');
+      } catch(e) {
+        flashNotice('Copy failed: ' + String(e));
+      }
+    }
+
+    // Keyboard shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'r' || e.key === 'R') regenerate();
+      if (e.key === 's' || e.key === 'S') surprise();
+    });
+
+    // Wire up buttons
+    generateBtn.addEventListener('click', generate);
+    regenBtn.addEventListener('click', regenerate);
+    surpriseBtn.addEventListener('click', surprise);
+    copyBtn.addEventListener('click', copyIdeas);
+
+    // Init
+    renderKeywords();
+
+    // Friendly seed: pre-select a sensible 3-keyword example
+    selected = ['Creative','15-60 min','Indoors'];
+    renderKeywords();
+    // Auto-generate one suggestion set on load for convenience
+    setTimeout(generate, 350);
+
+  })();
+  </script>
+</body>
+</html>
