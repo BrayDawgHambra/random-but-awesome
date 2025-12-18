@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>New Year World Tour — Orange & Green</title>
+
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&family=Asset&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --orange:#fb923c;
+  --orange-soft:rgba(251,146,60,.35);
+  --green:#22c55e;
+  --green-soft:rgba(34,197,94,.35);
+  --bg:#08120c;
+
+  --font-display:'Asset', system-ui, sans-serif;
+  --font-digital:'Orbitron', system-ui, sans-serif;
+}
+
+*{ box-sizing:border-box; }
+
+body{
+  margin:0;
+  min-height:100vh;
+  background:
+    radial-gradient(circle at top, rgba(251,146,60,.25), transparent 45%),
+    radial-gradient(circle at bottom, rgba(34,197,94,.25), transparent 45%),
+    var(--bg);
+  color:#ecfdf3;
+  font-family:system-ui,sans-serif;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+}
+
+h1{
+  font-family:var(--font-display);
+  letter-spacing:1.6px;
+  margin:0 0 6px;
+  text-align:center;
+  color:var(--orange);
+  line-height:1.15;
+}
+
+.subtitle{
+  text-align:center;
+  opacity:.85;
+  margin:0 0 16px;
+}
+
+.shell{
+  width:min(1040px, 100%);
+  display:grid;
+  grid-template-columns: 1.15fr .85fr;
+  gap:14px;
+}
+@media (max-width: 920px){
+  .shell{ grid-template-columns: 1fr; }
+}
+
+.card{
+  position:relative;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(34,197,94,.25);
+  border-radius:18px;
+  padding:18px 18px;
+  box-shadow:0 20px 45px rgba(0,0,0,.6);
+  overflow:hidden;
+}
+
+.target{
+  font-family:var(--font-display);
+  font-size:18px;
+  letter-spacing:.6px;
+  margin-bottom:6px;
+  color:var(--green);
+  display:flex;
+  gap:10px;
+  align-items:baseline;
+  flex-wrap:wrap;
+}
+.target .flag{ font-size:22px; filter: drop-shadow(0 0 10px rgba(251,146,60,.25)); }
+.target .place{ opacity:.9; }
+.target .offset{ opacity:.85; }
+
+.countdown{
+  font-family:var(--font-digital);
+  font-size:clamp(46px,7vw,76px);
+  letter-spacing:2px;
+  font-variant-numeric:tabular-nums;
+  margin:10px 0;
+  color:var(--orange);
+  text-shadow:
+    0 0 14px var(--orange-soft),
+    0 0 32px rgba(251,146,60,.25);
+}
+
+.meta{
+  font-family:var(--font-digital);
+  font-size:12px;
+  opacity:.8;
+  line-height:1.35;
+}
+
+.controls{
+  margin-top:14px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+
+button{
+  font-family:var(--font-digital);
+  padding:10px 14px;
+  border-radius:14px;
+  border:1px solid rgba(34,197,94,.35);
+  background:rgba(34,197,94,.12);
+  color:#ecfdf3;
+  cursor:pointer;
+  user-select:none;
+}
+button:hover{ background:rgba(34,197,94,.22); }
+button:active{ transform:translateY(1px); }
+
+.pills{
+  margin-top:12px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.pill{
+  font-family:var(--font-digital);
+  font-size:12px;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid rgba(251,146,60,.35);
+  background:rgba(251,146,60,.12);
+}
+.pill strong{ font-weight:800; }
+
+.sideHead{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  gap:10px;
+  margin-bottom:10px;
+}
+.sideHead .title{
+  font-family:var(--font-display);
+  letter-spacing:.8px;
+  color:var(--orange);
+}
+.sideHead .small{
+  font-family:var(--font-digital);
+  font-size:12px;
+  opacity:.85;
+}
+
+.list{
+  max-height:460px;
+  overflow:auto;
+  border-radius:14px;
+  border:1px solid rgba(34,197,94,.20);
+}
+.zrow{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  padding:10px 12px;
+  border-top:1px solid rgba(255,255,255,.08);
+  font-family:var(--font-digital);
+  font-size:12px;
+}
+.zrow:first-child{ border-top:none; }
+.zrow .left{ display:flex; gap:10px; align-items:center; min-width:0; }
+.zrow .flag{ font-size:16px; }
+.zrow .name{ opacity:.95; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 320px; }
+.zrow .right{ display:flex; gap:8px; align-items:center; }
+.tag{
+  opacity:.85;
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
+  padding:3px 8px;
+  border-radius:999px;
+  white-space:nowrap;
+}
+.tag.next{ background: rgba(251,146,60,.18); border-color: rgba(251,146,60,.35); }
+.tag.done{ background: rgba(34,197,94,.18); border-color: rgba(34,197,94,.35); }
+
+.footer{
+  margin-top:14px;
+  font-size:12px;
+  opacity:.65;
+  text-align:center;
+}
+
+/* Fireworks canvas overlays whole page */
+#fw{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:9999;
+  mix-blend-mode:screen;
+  opacity:0; /* idle */
+  transition: opacity .35s ease;
+}
+#fw.active{ opacity:1; }
+</style>
+</head>
+
+<body>
+<canvas id="fw"></canvas>
+
+<h1>New Year World Tour</h1>
+<div class="subtitle">All UTC offsets (incl. :30 / :45) • flags + example cities • orange & green fireworks • fullscreen party mode</div>
+
+<div class="shell">
+  <section class="card">
+    <div class="target" id="targetText">
+      <span class="flag" id="flag">🏁</span>
+      <span class="place" id="place">Loading…</span>
+      <span class="offset" id="offset">—</span>
+    </div>
+
+    <div class="countdown" id="countdown">--:--:--</div>
+    <div class="meta" id="utcInfo"></div>
+
+    <div class="controls">
+      <button id="enableAudio">Enable Sound</button>
+      <button id="fullscreenBtn">Fullscreen</button>
+      <button id="skip">Skip Offset</button>
+      <button id="wakeBtn">Wake Lock</button>
+    </div>
+
+    <div class="pills">
+      <div class="pill">Tour Year: <strong id="tourYear">—</strong></div>
+      <div class="pill">Audio: <strong id="audioState">locked</strong></div>
+      <div class="pill">Wake: <strong id="wakeState">off</strong></div>
+      <div class="pill">Next song: <strong id="songInfo">Auld Lang Syne</strong></div>
+    </div>
+  </section>
+
+  <aside class="card">
+    <div class="sideHead">
+      <div class="title">Offsets Queue</div>
+      <div class="small">Total: <span id="countTotal">—</span></div>
+    </div>
+    <div class="list" id="list"></div>
+  </aside>
+</div>
+
+<div class="footer">Tip: browsers require a click on “Enable Sound” for audio. Fireworks trigger at each midnight, then the tour advances.</div>
+
+<script>
+/* ===========================
+   OFFSETS (ALL REAL UTC OFFSETS)
+   -12 .. +14 with :30 and :45 where they exist
+=========================== */
+const OFFSETS = [
+  -12,-11,-10,-9.5,-9,-8,-7,-6,-5,-4,-3.5,-3,-2,-1,
+   0,
+   1,2,3,3.5,4,4.5,5,5.5,5.75,6,6.5,7,8,8.75,9,9.5,10,10.5,11,12,12.75,13,13.75,14
+].sort((a,b)=>b-a);
+
+/* ===========================
+   FLAGS + EXAMPLE CITIES (one per offset)
+   (These are illustrative examples; offsets can cover multiple places.)
+=========================== */
+const EXAMPLES = new Map([
+  [14,     { flag:"🇰🇮", place:"Kiritimati (Line Islands)" }],
+  [13.75,  { flag:"🇳🇿", place:"Chatham Islands" }],
+  [13,     { flag:"🇹🇴", place:"Nukuʻalofa (Tonga)" }],
+  [12.75,  { flag:"🇳🇿", place:"Chatham (NZ, summer variant region)" }],
+  [12,     { flag:"🇳🇿", place:"Auckland (NZ) / Suva (Fiji)" }],
+  [11,     { flag:"🇸🇧", place:"Honiara (Solomon Islands)" }],
+  [10.5,   { flag:"🇦🇺", place:"Lord Howe Island (AU)" }],
+  [10,     { flag:"🇦🇺", place:"Sydney (AU)" }],
+  [9.5,    { flag:"🇦🇺", place:"Adelaide (AU)" }],
+  [9,      { flag:"🇯🇵", place:"Tokyo (Japan)" }],
+  [8.75,   { flag:"🇦🇺", place:"Eucla (AU)" }],
+  [8,      { flag:"🇨🇳", place:"Beijing (China)" }],
+  [7,      { flag:"🇹🇭", place:"Bangkok (Thailand)" }],
+  [6.5,    { flag:"🇲🇲", place:"Yangon (Myanmar)" }],
+  [6,      { flag:"🇧🇩", place:"Dhaka (Bangladesh)" }],
+  [5.75,   { flag:"🇳🇵", place:"Kathmandu (Nepal)" }],
+  [5.5,    { flag:"🇮🇳", place:"New Delhi (India)" }],
+  [5,      { flag:"🇵🇰", place:"Karachi (Pakistan)" }],
+  [4.5,    { flag:"🇦🇫", place:"Kabul (Afghanistan)" }],
+  [4,      { flag:"🇦🇪", place:"Dubai (UAE)" }],
+  [3.5,    { flag:"🇮🇷", place:"Tehran (Iran)" }],
+  [3,      { flag:"🇷🇺", place:"Moscow (Russia)" }],
+  [2,      { flag:"🇬🇷", place:"Athens (Greece)" }],
+  [1,      { flag:"🇫🇷", place:"Paris (France)" }],
+  [0,      { flag:"🇬🇧", place:"London (UK) / UTC" }],
+  [-1,     { flag:"🇵🇹", place:"Azores (Portugal)" }],
+  [-2,     { flag:"🇧🇷", place:"Fernando de Noronha (BR, example region)" }],
+  [-3,     { flag:"🇦🇷", place:"Buenos Aires (Argentina)" }],
+  [-3.5,   { flag:"🇨🇦", place:"St. John’s (Newfoundland)" }],
+  [-4,     { flag:"🇺🇸", place:"San Juan / Atlantic region" }],
+  [-5,     { flag:"🇺🇸", place:"New York (USA)" }],
+  [-6,     { flag:"🇺🇸", place:"Chicago (USA)" }],
+  [-7,     { flag:"🇺🇸", place:"Denver (USA)" }],
+  [-8,     { flag:"🇺🇸", place:"Los Angeles (USA)" }],
+  [-9,     { flag:"🇺🇸", place:"Anchorage (USA)" }],
+  [-9.5,   { flag:"🇵🇫", place:"Marquesas Islands (French Polynesia)" }],
+  [-10,    { flag:"🇺🇸", place:"Honolulu (Hawaii)" }],
+  [-11,    { flag:"🇺🇸", place:"American Samoa (example region)" }],
+  [-12,    { flag:"🇺🇸", place:"Baker / Howland Islands (US)" }],
+]);
+
+function offsetLabel(o){
+  const sign = o>=0?"+":"-";
+  const abs = Math.abs(o);
+  const h = Math.floor(abs);
+  const m = Math.round((abs-h)*60);
+  return `UTC${sign}${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
+}
+
+function exampleFor(off){
+  return EXAMPLES.get(off) || { flag:"🏳️", place:"Example location" };
+}
+
+/* ===========================
+   STATE
+=========================== */
+let year = new Date().getUTCFullYear() + 1;
+let currentIndex = 0;
+let current = null;
+
+let audioCtx = null;
+let isCelebrating = false;
+
+let wakeLock = null;
+
+/* ===========================
+   FIREWORKS (orange & green)
+=========================== */
+const fw = document.getElementById("fw");
+const fwc = fw.getContext("2d");
+let W=0,H=0;
+function resizeFW(){
+  W = fw.width = window.innerWidth * devicePixelRatio;
+  H = fw.height = window.innerHeight * devicePixelRatio;
+  fwc.setTransform(1,0,0,1,0,0);
+}
+window.addEventListener("resize", resizeFW);
+resizeFW();
+
+const particles = [];
+function rand(min,max){ return min + Math.random()*(max-min); }
+
+function spawnBurst(x,y,baseHue){ // hue approx: orange ~ 28, green ~ 125
+  const count = Math.floor(rand(60, 110));
+  for(let i=0;i<count;i++){
+    const a = rand(0, Math.PI*2);
+    const sp = rand(1.2, 5.4) * devicePixelRatio;
+    particles.push({
+      x,y,
+      vx: Math.cos(a)*sp,
+      vy: Math.sin(a)*sp,
+      life: rand(40, 85),
+      ttl: 0,
+      hue: baseHue + rand(-10, 10),
+      size: rand(1.2, 2.8) * devicePixelRatio,
+      drag: rand(0.985, 0.995),
+      grav: rand(0.02, 0.05) * devicePixelRatio
+    });
+  }
+}
+
+let fwRunning = false;
+function runFireworks(ms=6000){
+  const canvas = document.getElementById("fw");
+  canvas.classList.add("active");
+  fwRunning = true;
+
+  const start = performance.now();
+  let lastSpawn = 0;
+
+  function frame(t){
+    if(!fwRunning) return;
+    const elapsed = t - start;
+
+    // fade frame
+    fwc.fillStyle = "rgba(0,0,0,0.18)";
+    fwc.fillRect(0,0,W,H);
+
+    // spawn periodically
+    if(t - lastSpawn > 240){
+      lastSpawn = t;
+      const x = rand(W*0.15, W*0.85);
+      const y = rand(H*0.15, H*0.55);
+      // alternate orange and green
+      const hue = (Math.random() < 0.5) ? 28 : 125;
+      spawnBurst(x,y,hue);
+    }
+
+    // update particles
+    for(let i=particles.length-1;i>=0;i--){
+      const p = particles[i];
+      p.ttl++;
+      p.life--;
+      p.vx *= p.drag;
+      p.vy = p.vy * p.drag + p.grav;
+      p.x += p.vx;
+      p.y += p.vy;
+
+      const alpha = Math.max(0, p.life / 85);
+      fwc.beginPath();
+      fwc.fillStyle = `hsla(${p.hue}, 95%, 60%, ${alpha})`;
+      fwc.arc(p.x, p.y, p.size, 0, Math.PI*2);
+      fwc.fill();
+
+      if(p.life <= 0 || p.x<0 || p.x>W || p.y>H) particles.splice(i,1);
+    }
+
+    if(elapsed < ms){
+      requestAnimationFrame(frame);
+    } else {
+      fwRunning = false;
+      canvas.classList.remove("active");
+      // clear lingering particles gradually
+      particles.length = 0;
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ===========================
+   AUDIO — richer instrumental Auld Lang Syne
+   - simple melody + chord pad + bass (WebAudio)
+   - duration ~ 18-22s
+=========================== */
+function ensureAudio(){
+  if(audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  document.getElementById("audioState").textContent = "on";
+}
+
+function midiToHz(m){ return 440 * Math.pow(2, (m-69)/12); }
+
+function scheduleTone({t, dur, freq, type="sine", gain=0.12, pan=0}){
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  const p = audioCtx.createStereoPanner();
+
+  o.type = type;
+  o.frequency.setValueAtTime(freq, t);
+
+  // ADSR-ish
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(gain, t + 0.02);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0001, gain*0.65), t + Math.min(0.22, dur*0.4));
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+
+  p.pan.setValueAtTime(pan, t);
+
+  o.connect(g);
+  g.connect(p);
+  p.connect(audioCtx.destination);
+
+  o.start(t);
+  o.stop(t + dur + 0.02);
+}
+
+function playAuldLangSyneRicher(){
+  if(!audioCtx) return Promise.resolve(0);
+
+  // Auld Lang Syne melody (approx) in G major
+  // We'll do 2 phrases so it feels complete.
+  // quarter note = 110 bpm
+  const bpm = 110;
+  const beat = 60 / bpm;
+
+  // Melody (MIDI note, beats)
+  const phrase = [
+    [67,1],[67,1],[69,1.5],[67,1.5],[72,1.5],[71,2],
+    [67,1],[67,1],[69,1.5],[67,1.5],[74,1.5],[72,2],
+    [67,1],[67,1],[79,1.5],[76,1.5],[72,1.5],[71,1.5],[69,2.5],
+    [68,1],[68,1],[76,1.5],[72,1.5],[74,1.5],[72,2],
+  ];
+
+  // Chords (G, C, D, Em-ish)
+  // Each entry: [rootMidi, quality, beats]
+  // quality: "maj" | "min" | "dom7"
+  const chords = [
+    ["G",4],["C",4],["G",4],["D",4],
+    ["G",4],["C",4],["G",4],["D",4],
+    ["G",4],["Em",4],["C",4],["D",4],
+    ["G",4]
+  ];
+
+  const noteMap = {
+    "G":  [67,71,74],        // G B D
+    "C":  [60,64,67],        // C E G
+    "D":  [62,66,69],        // D F# A
+    "Em": [64,67,71],        // E G B
+  };
+
+  const start = audioCtx.currentTime + 0.05;
+  let t = start;
+
+  // Gentle "pad" chords
+  let chordT = start;
+  for(const [name, beats] of chords){
+    const triad = noteMap[name] || noteMap["G"];
+    const dur = beats * beat;
+
+    // pad (saw + triangle layered)
+    triad.forEach((m,i)=>{
+      scheduleTone({ t: chordT, dur, freq: midiToHz(m), type:"triangle", gain:0.05, pan:(i-1)*0.15 });
+      scheduleTone({ t: chordT, dur, freq: midiToHz(m), type:"sawtooth", gain:0.018, pan:(i-1)*0.12 });
+    });
+
+    // bass root (octave down)
+    scheduleTone({ t: chordT, dur, freq: midiToHz(triad[0]-12), type:"sine", gain:0.055, pan:-0.05 });
+
+    chordT += dur;
+  }
+
+  // Melody lead
+  for(const [midi, beats] of phrase){
+    const dur = beats * beat;
+    scheduleTone({ t, dur, freq: midiToHz(midi), type:"sine", gain:0.12, pan:0.05 });
+    // a tiny harmony shimmer occasionally
+    if(Math.random()<0.35){
+      scheduleTone({ t, dur: dur*0.9, freq: midiToHz(midi+12), type:"triangle", gain:0.028, pan:-0.08 });
+    }
+    t += dur;
+  }
+
+  const total = (t - start) + 0.3;
+  return new Promise(res => setTimeout(()=>res(total), total*1000));
+}
+
+/* ===========================
+   MIDNIGHT TARGETING
+   - Compute UTC instant when each offset hits Jan 1 00:00
+   - We choose the next upcoming event from now
+   - After celebrating, we mark it done and move forward
+=========================== */
+let done = new Set(); // offsets already celebrated for current year
+
+function utcMomentForYearOffset(year, off){
+  // Local midnight Jan 1 at offset off corresponds to UTC time: Jan 1 00:00 - off hours
+  // Date.UTC(year,0,1, -off, 0, 0) handles fractional via minutes too if we convert.
+  const sign = off>=0 ? 1 : -1;
+  const abs = Math.abs(off);
+  const h = Math.floor(abs);
+  const m = Math.round((abs - h) * 60);
+  // UTC time = local time - offset => subtract off => UTC hour = 0 - off
+  // For fractional, handle minutes: 0 - (sign*m)
+  const utcHour = -sign*h;
+  const utcMin  = -sign*m;
+  return Date.UTC(year, 0, 1, utcHour, utcMin, 0);
+}
+
+function nextUpcomingEvent(){
+  const now = Date.now();
+
+  // If all offsets done for the year, bump year and reset
+  if(done.size >= OFFSETS.length){
+    year++;
+    done = new Set();
+  }
+
+  // Build candidate list not done
+  const candidates = OFFSETS
+    .filter(o => !done.has(o))
+    .map(o => ({ off:o, utc: utcMomentForYearOffset(year, o) }))
+    .sort((a,b)=>a.utc - b.utc);
+
+  // Choose first whose utc is still in the future; if none, then year rolls
+  let next = candidates.find(c => c.utc > now);
+  if(!next){
+    // Year already passed in real time; advance year and recompute
+    year++;
+    done = new Set();
+    return nextUpcomingEvent();
+  }
+  return next;
+}
+
+/* ===========================
+   UI LIST
+=========================== */
+const listEl = document.getElementById("list");
+document.getElementById("countTotal").textContent = OFFSETS.length;
+
+function renderList(nextOff){
+  const rows = OFFSETS.map(o=>{
+    const ex = exampleFor(o);
+    const tag = done.has(o) ? `<span class="tag done">done</span>` :
+                (o===nextOff ? `<span class="tag next">next</span>` : ``);
+
+    return `
+      <div class="zrow">
+        <div class="left">
+          <div class="flag">${ex.flag}</div>
+          <div class="name">${offsetLabel(o)} — ${ex.place}</div>
+        </div>
+        <div class="right">${tag}</div>
+      </div>
+    `;
+  }).join("");
+  listEl.innerHTML = rows;
+}
+
+/* ===========================
+   MAIN LOOP
+=========================== */
+const elFlag = document.getElementById("flag");
+const elPlace = document.getElementById("place");
+const elOffset = document.getElementById("offset");
+const elCountdown = document.getElementById("countdown");
+const elUTC = document.getElementById("utcInfo");
+const elYear = document.getElementById("tourYear");
+
+function setTarget(target){
+  current = target;
+  const ex = exampleFor(target.off);
+  elFlag.textContent = ex.flag;
+  elPlace.textContent = `${ex.place} — New Year ${year}`;
+  elOffset.textContent = `(${offsetLabel(target.off)})`;
+  elYear.textContent = String(year);
+  renderList(target.off);
+}
+
+setTarget(nextUpcomingEvent());
+
+async function celebrate(){
+  if(isCelebrating) return;
+  isCelebrating = true;
+
+  // Fireworks
+  runFireworks(6500);
+
+  // Song
+  const playedSeconds = await playAuldLangSyneRicher();
+
+  // Mark done and advance
+  done.add(current.off);
+  setTarget(nextUpcomingEvent());
+
+  isCelebrating = false;
+}
+
+function tick(){
+  const now = Date.now();
+  const diff = current.utc - now;
+
+  elYear.textContent = String(year);
+
+  // Update UTC text
+  elUTC.textContent = `UTC moment: ${new Date(current.utc).toUTCString()} • Local now: ${new Date().toLocaleString()}`;
+
+  if(diff <= 0){
+    elCountdown.textContent = "🎆 00:00 🎆";
+    // Only celebrate once per target
+    if(!done.has(current.off)){
+      // In case audio isn’t enabled, we still do fireworks + advance after a short pause.
+      if(audioCtx){
+        celebrate();
+      } else {
+        runFireworks(4200);
+        done.add(current.off);
+        setTimeout(()=>setTarget(nextUpcomingEvent()), 1800);
+      }
+    }
+    return;
+  }
+
+  const h = Math.floor(diff / 3.6e6);
+  const m = Math.floor((diff % 3.6e6) / 6e4);
+  const s = Math.floor((diff % 6e4) / 1000);
+
+  elCountdown.textContent =
+    `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+}
+setInterval(tick, 250);
+
+/* ===========================
+   CONTROLS
+=========================== */
+document.getElementById("enableAudio").addEventListener("click", async ()=>{
+  ensureAudio();
+  try { await audioCtx.resume(); } catch {}
+  document.getElementById("audioState").textContent = "on";
+});
+
+document.getElementById("skip").addEventListener("click", ()=>{
+  done.add(current.off);
+  setTarget(nextUpcomingEvent());
+});
+
+document.getElementById("fullscreenBtn").addEventListener("click", async ()=>{
+  try{
+    if(!document.fullscreenElement){
+      await document.documentElement.requestFullscreen();
+    }else{
+      await document.exitFullscreen();
+    }
+  }catch(e){}
+});
+
+document.getElementById("wakeBtn").addEventListener("click", async ()=>{
+  const el = document.getElementById("wakeState");
+  try{
+    if(!("wakeLock" in navigator)){
+      el.textContent = "unsupported";
+      return;
+    }
+    if(!wakeLock){
+      wakeLock = await navigator.wakeLock.request("screen");
+      el.textContent = "on";
+      wakeLock.addEventListener("release", ()=>{ el.textContent = "off"; wakeLock=null; });
+    }else{
+      await wakeLock.release();
+      wakeLock = null;
+      el.textContent = "off";
+    }
+  }catch(e){
+    el.textContent = "blocked";
+  }
+});
+
+// Re-acquire wake lock after visibility change (common behavior)
+document.addEventListener("visibilitychange", async ()=>{
+  if(document.visibilityState === "visible" && wakeLock){
+    try{
+      wakeLock = await navigator.wakeLock.request("screen");
+      document.getElementById("wakeState").textContent = "on";
+    }catch{}
+  }
+});
+</script>
+</body>
+</html>
