@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Year's Countdown — All Time Zones</title>
+  <style>
+    /* Import Orbitron and Asset fonts from Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Asset&display=swap');
+
+    body {
+      font-family: 'Orbitron', sans-serif;
+      text-align: center;
+      background: linear-gradient(45deg, #141e30, #243b55);
+      color: white;
+      height: 100vh;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+
+    #countdown-container {
+      text-align: center;
+    }
+
+    h1 {
+      font-family: 'Asset', cursive; /* Use Asset font for the main heading */
+      font-size: 3rem;
+      margin: 0.5em 0;
+    }
+
+    #timer {
+      font-family: 'Orbitron', sans-serif; /* Use Orbitron font for the countdown timer */
+      font-size: 4rem;
+      margin: 1em 0;
+    }
+
+    #timezone-label {
+      font-size: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div id="countdown-container">
+    <h1>🌎 New Year's Countdown 🌍</h1>
+    <p id="timezone-label">Current Time Zone: <span id="timezone-name"></span></p>
+    <h2 id="timer">00:00:00</h2>
+    <audio id="auld-lang-syne" src="auld-lang-syne.mp3"></audio>
+  </div>
+
+  <script>
+    // Full list of time zones with UTC offsets (including unusual ones like UTC+13:45 and UTC+5:45)
+    const timeZones = [
+      { name: "UTC−12:00 (Anywhere on Earth)", offset: -12 * 60 },
+      { name: "UTC−11:00 (Samoa)", offset: -11 * 60 },
+      { name: "UTC−10:00 (Hawaii-Aleutian)", offset: -10 * 60 },
+      { name: "UTC−09:30 (Marquesas Islands)", offset: -9 * 60 - 30 },
+      { name: "UTC−09:00 (Alaska)", offset: -9 * 60 },
+      { name: "UTC−08:00 (Pacific Time)", offset: -8 * 60 },
+      { name: "UTC−07:00 (Mountain Time)", offset: -7 * 60 },
+      { name: "UTC−06:00 (Central Time)", offset: -6 * 60 },
+      { name: "UTC−05:00 (Eastern Time)", offset: -5 * 60 },
+      { name: "UTC−04:00 (Atlantic Time)", offset: -4 * 60 },
+      { name: "UTC−03:30 (Newfoundland)", offset: -3 * 60 - 30 },
+      { name: "UTC−03:00 (Argentina, Brazil)", offset: -3 * 60 },
+      { name: "UTC−02:00 (South Georgia)", offset: -2 * 60 },
+      { name: "UTC−01:00 (Azores)", offset: -1 * 60 },
+      { name: "UTC±00:00 (UTC Time)", offset: 0 },
+      { name: "UTC+01:00 (Central European)", offset: 1 * 60 },
+      { name: "UTC+02:00 (Eastern European)", offset: 2 * 60 },
+      { name: "UTC+03:00 (Moscow)", offset: 3 * 60 },
+      { name: "UTC+03:30 (Tehran)", offset: 3 * 60 + 30 },
+      { name: "UTC+04:00 (UAE)", offset: 4 * 60 },
+      { name: "UTC+04:30 (Kabul)", offset: 4 * 60 + 30 },
+      { name: "UTC+05:00 (Pakistan)", offset: 5 * 60 },
+      { name: "UTC+05:30 (India, Sri Lanka)", offset: 5 * 60 + 30 },
+      { name: "UTC+05:45 (Kathmandu)", offset: 5 * 60 + 45 },
+      { name: "UTC+06:00 (Bangladesh)", offset: 6 * 60 },
+      { name: "UTC+06:30 (Myanmar)", offset: 6 * 60 + 30 },
+      { name: "UTC+07:00 (Thailand)", offset: 7 * 60 },
+      { name: "UTC+08:00 (China)", offset: 8 * 60 },
+      { name: "UTC+08:45 (Australia Eucla)", offset: 8 * 60 + 45 },
+      { name: "UTC+09:00 (Japan)", offset: 9 * 60 },
+      { name: "UTC+09:30 (Australia Central)", offset: 9 * 60 + 30 },
+      { name: "UTC+10:00 (Australia Eastern)", offset: 10 * 60 },
+      { name: "UTC+10:30 (Lord Howe Island)", offset: 10 * 60 + 30 },
+      { name: "UTC+11:00 (Solomon Islands)", offset: 11 * 60 },
+      { name: "UTC+12:00 (Fiji)", offset: 12 * 60 },
+      { name: "UTC+12:45 (Chatham Islands)", offset: 12 * 60 + 45 },
+      { name: "UTC+13:00 (Tonga)", offset: 13 * 60 },
+      { name: "UTC+14:00 (Kiritimati)", offset: 14 * 60 }
+    ];
+
+    // DOM Elements
+    const timerElement = document.getElementById("timer");
+    const timezoneLabel = document.getElementById("timezone-name");
+    const auldLangSyne = document.getElementById("auld-lang-syne");
+
+    let currentIndex = 0;
+
+    // Function to calculate the time remaining for a given time zone
+    function calculateTimeRemaining(offset) {
+      const now = new Date();
+      // Get current UTC time
+      const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+      // Determine midnight time for the target time zone
+      const currentLocalMidnight = new Date(utc + offset * 60000);
+      currentLocalMidnight.setUTCHours(24, 0, 0, 0);
+      const diff = currentLocalMidnight - now;
+
+      return {
+        total: diff,
+        hours: Math.floor(diff / (1000 * 60 * 60)),
+        minutes: Math.floor((diff / (1000 * 60)) % 60),
+        seconds: Math.floor((diff / 1000) % 60),
+      };
+    }
+
+    // Function to update the countdown for the current time zone
+    function updateCountdown() {
+      const tz = timeZones[currentIndex];
+      timezoneLabel.textContent = tz.name;
+      const remaining = calculateTimeRemaining(tz.offset);
+
+      if (remaining.total <= 0) {
+        // If countdown reaches zero, play the song and move to the next time zone
+        auldLangSyne.play();
+        auldLangSyne.onended = () => {
+          currentIndex++;
+          if (currentIndex >= timeZones.length) {
+            timerElement.textContent = "🎉 HAPPY NEW YEAR! 🎉";
+            timezoneLabel.textContent = "Celebrations complete!";
+            return;
+          }
+          updateCountdown();
+        };
+      } else {
+        // Otherwise, update the timer display
+        timerElement.textContent = `${String(remaining.hours).padStart(2, "0")}:${String(remaining.minutes).padStart(2, "0")}:${String(remaining.seconds).padStart(2, "0")}`;
+        setTimeout(updateCountdown, 1000);
+      }
+    }
+
+    // Start the countdown
+    updateCountdown();
+  </script>
+</body>
+</html>
