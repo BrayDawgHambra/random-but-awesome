@@ -1,0 +1,1137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Learning Path Builder</title>
+
+  <!-- Silkscreen -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#111a33;
+      --panel2:#0f1730;
+      --text:#e9ecff;
+      --muted:#aab1d6;
+      --border:#27345e;
+      --primary:#7c5cff;
+      --accent:#24d18f;
+      --danger:#ff4d6d;
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --radius:16px;
+    }
+
+    *{ box-sizing:border-box; }
+    html, body{ height:100%; }
+    body{
+      margin:0;
+      font-family:'Silkscreen', monospace;
+      background:
+        radial-gradient(1200px 800px at 20% 0%, rgba(124,92,255,.18), transparent 55%),
+        radial-gradient(900px 700px at 90% 20%, rgba(36,209,143,.12), transparent 60%),
+        var(--bg);
+      color:var(--text);
+      min-height:100vh;
+    }
+
+    .app{
+      display:grid;
+      grid-template-columns: 380px 1fr;
+      gap:16px;
+      padding:16px;
+      max-width: 1500px;
+      margin: 0 auto;
+    }
+    @media (max-width: 980px){
+      .app{ grid-template-columns: 1fr; }
+    }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .hd{
+      padding:14px 14px 12px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      background: rgba(0,0,0,.12);
+    }
+    .hd h2{
+      margin:0;
+      font-size:14px;
+      letter-spacing:1px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .badge{
+      font-size:11px;
+      color:var(--muted);
+      padding:4px 8px;
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:999px;
+      background: rgba(255,255,255,.03);
+      white-space:nowrap;
+    }
+    .bd{ padding:14px; }
+
+    label{
+      display:block;
+      font-size:11px;
+      color:var(--muted);
+      margin: 10px 0 6px;
+    }
+    input[type="text"], input[type="number"], input[type="color"], textarea, select{
+      width:100%;
+      padding:10px 10px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.25);
+      color: var(--text);
+      outline:none;
+      font-family:'Silkscreen', monospace;
+      font-size:12px;
+    }
+    textarea{ min-height: 88px; resize: vertical; }
+    input[type="color"]{ padding:6px; height:44px; }
+
+    .row{ display:flex; gap:10px; }
+    .row > *{ flex:1; }
+
+    .btns{ display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; }
+    button{
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      transition: transform .06s ease, background .2s ease, border .2s ease;
+      font-weight:700;
+      font-size:12px;
+      font-family:'Silkscreen', monospace;
+      letter-spacing:.6px;
+    }
+    button:hover{ background: rgba(255,255,255,.07); }
+    button:active{ transform: translateY(1px); }
+    .primary{ border-color: rgba(124,92,255,.7); background: rgba(124,92,255,.15); }
+    .primary:hover{ background: rgba(124,92,255,.22); }
+    .accent{ border-color: rgba(36,209,143,.6); background: rgba(36,209,143,.12); }
+    .accent:hover{ background: rgba(36,209,143,.17); }
+    .danger{ border-color: rgba(255,77,109,.65); background: rgba(255,77,109,.10); }
+    .danger:hover{ background: rgba(255,77,109,.14); }
+
+    .tiny{ font-size:11px; color: var(--muted); margin-top:10px; line-height:1.45; }
+
+    /* Main */
+    .main .topbar{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      padding:14px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      background: rgba(0,0,0,.12);
+    }
+    .title{ display:flex; flex-direction:column; gap:6px; min-width:0; }
+    .title h1{ margin:0; font-size:18px; letter-spacing:1px; }
+    .title p{ margin:0; color:var(--muted); font-size:11px; max-width: 80ch; }
+
+    .progressWrap{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      min-width: 280px;
+      max-width: 380px;
+    }
+    .progressMeta{
+      display:flex;
+      justify-content:space-between;
+      color: var(--muted);
+      font-size:11px;
+      gap:10px;
+    }
+    .bar{
+      height: 10px;
+      border-radius:999px;
+      background: rgba(255,255,255,.07);
+      border:1px solid rgba(255,255,255,.10);
+      overflow:hidden;
+    }
+    .bar > div{
+      height:100%;
+      width:0%;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      border-radius:999px;
+      transition: width .25s ease;
+    }
+
+    .grid{
+      padding:14px;
+      display:grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap:12px;
+    }
+
+    .unit{
+      grid-column: span 6;
+      background: rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: var(--radius);
+      overflow:hidden;
+      position:relative;
+    }
+    @media (max-width: 1180px){ .unit{ grid-column: span 12; } }
+
+    .unitHd{
+      padding:12px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      background: linear-gradient(180deg, rgba(255,255,255,.03), transparent);
+    }
+    .unitHd .left{ display:flex; flex-direction:column; gap:6px; min-width:0; }
+    .kicker{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      color: var(--muted);
+      font-size:11px;
+    }
+    .dot{
+      width:10px; height:10px; border-radius:50%;
+      background: var(--primary);
+      box-shadow: 0 0 0 3px rgba(124,92,255,.18);
+      flex:0 0 auto;
+    }
+    .unitHd h3{
+      margin:0;
+      font-size:13px;
+      line-height:1.25;
+      letter-spacing:1px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .unitHd .desc{
+      margin:0;
+      color: var(--muted);
+      font-size:11px;
+      line-height:1.45;
+      overflow:hidden;
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+    }
+    .unitHd .actions{ display:flex; gap:8px; flex:0 0 auto; }
+    .iconBtn{ padding:8px 10px; border-radius:12px; font-weight:800; line-height:1; }
+
+    .lessonList{
+      padding:10px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      min-height: 40px;
+    }
+    .lessonList.dropHint{
+      outline: 2px dashed rgba(124,92,255,.6);
+      outline-offset: -6px;
+      border-radius: 14px;
+    }
+
+    .lesson{
+      background: rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      padding:10px;
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+    }
+    .lesson.dragging{ opacity:.55; border-style:dashed; }
+    .grab{
+      width: 28px; height: 28px;
+      border-radius: 10px;
+      display:grid; place-items:center;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.20);
+      color: var(--muted);
+      cursor: grab;
+      user-select:none;
+      flex:0 0 auto;
+    }
+    .lesson .content{ flex:1; min-width:0; }
+    .lesson .top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:6px;
+    }
+    .lessonTitle{
+      font-weight:800;
+      font-size:12px;
+      letter-spacing:.8px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .chips{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+    .chip{
+      font-size:10px;
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.22);
+      color: var(--muted);
+      white-space:nowrap;
+    }
+    .chip.done{ color: rgba(255,255,255,.92); border-color: rgba(36,209,143,.55); background: rgba(36,209,143,.10); }
+    .chip.todo{ border-color: rgba(124,92,255,.55); background: rgba(124,92,255,.10); color: rgba(255,255,255,.92); }
+    .chip.skip{ border-color: rgba(255,77,109,.50); background: rgba(255,77,109,.08); }
+
+    .lesson .sub{
+      color: var(--muted);
+      font-size:11px;
+      line-height:1.45;
+      overflow:hidden;
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+    }
+
+    .lesson .rightBtns{
+      display:flex;
+      gap:8px;
+      flex:0 0 auto;
+    }
+
+    .selectedGlow{
+      box-shadow: 0 0 0 2px rgba(124,92,255,.55), var(--shadow);
+      border-color: rgba(124,92,255,.65) !important;
+    }
+
+    .footerNote{
+      padding:12px 14px;
+      border-top: 1px solid rgba(255,255,255,.06);
+      color: var(--muted);
+      font-size:11px;
+      background: rgba(0,0,0,.10);
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .mono{
+      font-family: 'Silkscreen', monospace;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <!-- SIDEBAR -->
+    <aside class="card">
+      <div class="hd">
+        <h2>BUILDER <span class="badge" id="autosaveBadge">AUTOSAVE: ON</span></h2>
+        <span class="badge" id="selectedBadge">SELECT: NONE</span>
+      </div>
+
+      <div class="bd">
+        <label>Path Title</label>
+        <input id="pathTitle" type="text" placeholder="e.g., Learn Anything Fast" />
+
+        <label>Path Subtitle</label>
+        <textarea id="pathSubtitle" placeholder="Short description of what this learning path is for…"></textarea>
+
+        <div class="row">
+          <div>
+            <label>Primary</label>
+            <input id="cPrimary" type="color" />
+          </div>
+          <div>
+            <label>Accent</label>
+            <input id="cAccent" type="color" />
+          </div>
+          <div>
+            <label>Background</label>
+            <input id="cBg" type="color" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>Panel</label>
+            <input id="cPanel" type="color" />
+          </div>
+          <div>
+            <label>Text</label>
+            <input id="cText" type="color" />
+          </div>
+          <div>
+            <label>Border</label>
+            <input id="cBorder" type="color" />
+          </div>
+        </div>
+
+        <div class="btns">
+          <button class="primary" id="addUnitBtn">+ UNIT</button>
+          <button class="accent" id="addLessonBtn">+ LESSON</button>
+          <button id="duplicateBtn">DUPLICATE</button>
+          <button class="danger" id="deleteBtn">DELETE</button>
+        </div>
+
+        <hr style="border:none;border-top:1px solid rgba(255,255,255,.08);margin:14px 0;">
+
+        <div class="card" style="box-shadow:none;">
+          <div class="hd">
+            <h2>EDITOR</h2>
+            <span class="badge" id="editorType">—</span>
+          </div>
+          <div class="bd" id="editorPane">
+            <div class="tiny">Click a Unit or Lesson to edit it. Everything is customizable.</div>
+          </div>
+        </div>
+
+        <hr style="border:none;border-top:1px solid rgba(255,255,255,.08);margin:14px 0;">
+
+        <div class="btns">
+          <button id="exportBtn">EXPORT JSON</button>
+          <button id="importBtn">IMPORT JSON</button>
+          <button id="resetBtn" class="danger">RESET</button>
+        </div>
+
+        <div class="tiny">
+          Tips: Drag lessons to reorder inside a unit. Use Export/Import to share templates. Autosaves locally.
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="card main">
+      <div class="topbar">
+        <div class="title">
+          <h1 id="viewTitle">Learning Path</h1>
+          <p id="viewSubtitle">Build a customizable learning path (units + lessons) with a Coursiv-style vibe.</p>
+        </div>
+
+        <div class="progressWrap">
+          <div class="progressMeta">
+            <span id="progressText">0 / 0 completed</span>
+            <span id="timeText">0 min</span>
+          </div>
+          <div class="bar"><div id="progressBar"></div></div>
+        </div>
+      </div>
+
+      <div class="grid" id="grid"></div>
+
+      <div class="footerNote">
+        <span>Drag lessons to reorder • Click to edit • Everything customizable</span>
+        <span class="mono" id="saveState">SAVED</span>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    /*********************
+     * DATA MODEL
+     *********************/
+    const STORAGE_KEY = "learning_path_builder_v1";
+
+    const uid = () => Math.random().toString(16).slice(2) + Date.now().toString(16);
+
+    const defaultState = () => ({
+      meta: {
+        title: "LEARNING PATH",
+        subtitle: "Everything is customizable: colors, units, lessons, content, resources, and progress.",
+        theme: {
+          bg: "#0b1020",
+          panel: "#111a33",
+          text: "#e9ecff",
+          border: "#27345e",
+          primary: "#7c5cff",
+          accent: "#24d18f"
+        }
+      },
+      units: [
+        {
+          id: uid(),
+          title: "UNIT 1: FOUNDATION",
+          description: "Set up your basics and the first wins.",
+          tag: "START",
+          lessons: [
+            {
+              id: uid(),
+              title: "Lesson 1: Define the Goal",
+              description: "Write a clear outcome and constraints.",
+              durationMin: 10,
+              status: "todo",
+              resources: [
+                { label: "Template", url: "https://example.com" }
+              ]
+            },
+            {
+              id: uid(),
+              title: "Lesson 2: Build a Plan",
+              description: "Break the goal into steps and checkpoints.",
+              durationMin: 15,
+              status: "todo",
+              resources: []
+            }
+          ]
+        },
+        {
+          id: uid(),
+          title: "UNIT 2: PRACTICE",
+          description: "Do the reps and track progress.",
+          tag: "LEVEL UP",
+          lessons: [
+            {
+              id: uid(),
+              title: "Lesson 1: Mini Project",
+              description: "Apply the concept to something real.",
+              durationMin: 25,
+              status: "todo",
+              resources: []
+            }
+          ]
+        }
+      ]
+    });
+
+    let state = loadState();
+    let selected = { type: null, unitId: null, lessonId: null };
+
+    /*********************
+     * LOAD/SAVE
+     *********************/
+    function loadState(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(!raw) return defaultState();
+        const parsed = JSON.parse(raw);
+        // light validation
+        if(!parsed?.meta?.theme || !Array.isArray(parsed?.units)) return defaultState();
+        return parsed;
+      }catch(e){
+        return defaultState();
+      }
+    }
+
+    let saveTimer = null;
+    function saveStateSoon(){
+      document.getElementById("saveState").textContent = "SAVING…";
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        document.getElementById("saveState").textContent = "SAVED";
+      }, 150);
+    }
+
+    /*********************
+     * THEME
+     *********************/
+    function applyTheme(){
+      const t = state.meta.theme;
+      const root = document.documentElement.style;
+      root.setProperty("--bg", t.bg);
+      root.setProperty("--panel", t.panel);
+      root.setProperty("--text", t.text);
+      root.setProperty("--border", t.border);
+      root.setProperty("--primary", t.primary);
+      root.setProperty("--accent", t.accent);
+    }
+
+    /*********************
+     * HELPERS
+     *********************/
+    function getUnit(unitId){ return state.units.find(u => u.id === unitId); }
+    function getLesson(unitId, lessonId){
+      const u = getUnit(unitId);
+      return u?.lessons?.find(l => l.id === lessonId);
+    }
+
+    function computeTotals(){
+      const lessons = state.units.flatMap(u => u.lessons || []);
+      const total = lessons.length;
+      const done = lessons.filter(l => l.status === "done").length;
+      const minutes = lessons.reduce((a,l)=>a + (Number(l.durationMin)||0), 0);
+      const pct = total ? Math.round((done/total)*100) : 0;
+      return { total, done, minutes, pct };
+    }
+
+    function setSelected(type, unitId=null, lessonId=null){
+      selected = { type, unitId, lessonId };
+      const badge = document.getElementById("selectedBadge");
+      const editorType = document.getElementById("editorType");
+      if(!type){
+        badge.textContent = "SELECT: NONE";
+        editorType.textContent = "—";
+      }else{
+        badge.textContent = "SELECT: " + type.toUpperCase();
+        editorType.textContent = type.toUpperCase();
+      }
+      renderEditor();
+      render();
+    }
+
+    function escapeHtml(s){
+      return (s ?? "").toString()
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    /*********************
+     * RENDER MAIN
+     *********************/
+    function render(){
+      applyTheme();
+
+      // header
+      document.getElementById("viewTitle").textContent = state.meta.title || "LEARNING PATH";
+      document.getElementById("viewSubtitle").textContent = state.meta.subtitle || "";
+
+      // progress
+      const { total, done, minutes, pct } = computeTotals();
+      document.getElementById("progressText").textContent = `${done} / ${total} completed`;
+      document.getElementById("timeText").textContent = `${minutes} min`;
+      document.getElementById("progressBar").style.width = `${pct}%`;
+
+      // sidebar fields
+      document.getElementById("pathTitle").value = state.meta.title ?? "";
+      document.getElementById("pathSubtitle").value = state.meta.subtitle ?? "";
+
+      // theme inputs
+      const t = state.meta.theme;
+      document.getElementById("cPrimary").value = t.primary;
+      document.getElementById("cAccent").value  = t.accent;
+      document.getElementById("cBg").value      = t.bg;
+      document.getElementById("cPanel").value   = t.panel;
+      document.getElementById("cText").value    = t.text;
+      document.getElementById("cBorder").value  = t.border;
+
+      // grid
+      const grid = document.getElementById("grid");
+      grid.innerHTML = "";
+
+      state.units.forEach((unit, unitIndex) => {
+        const unitEl = document.createElement("section");
+        unitEl.className = "unit";
+        if(selected.type === "unit" && selected.unitId === unit.id) unitEl.classList.add("selectedGlow");
+
+        unitEl.innerHTML = `
+          <div class="unitHd">
+            <div class="left">
+              <div class="kicker">
+                <span class="dot"></span>
+                <span>${escapeHtml(unit.tag || `UNIT ${unitIndex+1}`)}</span>
+                <span class="badge">${(unit.lessons?.length||0)} LESSONS</span>
+              </div>
+              <h3 title="${escapeHtml(unit.title)}">${escapeHtml(unit.title)}</h3>
+              <p class="desc">${escapeHtml(unit.description || "")}</p>
+            </div>
+            <div class="actions">
+              <button class="iconBtn" title="Move Up" data-act="unitUp" data-unit="${unit.id}">↑</button>
+              <button class="iconBtn" title="Move Down" data-act="unitDown" data-unit="${unit.id}">↓</button>
+              <button class="iconBtn primary" title="Select Unit" data-act="selectUnit" data-unit="${unit.id}">EDIT</button>
+            </div>
+          </div>
+          <div class="lessonList" data-unitlist="${unit.id}"></div>
+        `;
+
+        const list = unitEl.querySelector(".lessonList");
+
+        // Lessons
+        (unit.lessons || []).forEach((lesson, lessonIndex) => {
+          const lessonEl = document.createElement("div");
+          lessonEl.className = "lesson";
+          lessonEl.draggable = true;
+          lessonEl.dataset.unit = unit.id;
+          lessonEl.dataset.lesson = lesson.id;
+          if(selected.type === "lesson" && selected.lessonId === lesson.id) lessonEl.classList.add("selectedGlow");
+
+          const statusChip =
+            lesson.status === "done" ? `<span class="chip done">DONE</span>` :
+            lesson.status === "skip" ? `<span class="chip skip">SKIP</span>` :
+            `<span class="chip todo">TODO</span>`;
+
+          const dur = Number(lesson.durationMin || 0);
+          const durChip = dur ? `<span class="chip">${dur} MIN</span>` : `<span class="chip">—</span>`;
+
+          lessonEl.innerHTML = `
+            <div class="grab" title="Drag to reorder">≡</div>
+            <div class="content">
+              <div class="top">
+                <div class="lessonTitle" title="${escapeHtml(lesson.title)}">${escapeHtml(lesson.title || `Lesson ${lessonIndex+1}`)}</div>
+                <div class="chips">
+                  ${durChip}
+                  ${statusChip}
+                </div>
+              </div>
+              <div class="sub">${escapeHtml(lesson.description || "")}</div>
+              ${renderResourcesInline(lesson)}
+            </div>
+            <div class="rightBtns">
+              <button class="iconBtn" title="Toggle Done" data-act="toggleDone" data-unit="${unit.id}" data-lesson="${lesson.id}">✓</button>
+              <button class="iconBtn primary" title="Edit Lesson" data-act="selectLesson" data-unit="${unit.id}" data-lesson="${lesson.id}">EDIT</button>
+            </div>
+          `;
+
+          // click select on body (but not buttons)
+          lessonEl.addEventListener("click", (e) => {
+            const btn = e.target.closest("button");
+            if(btn) return;
+            setSelected("lesson", unit.id, lesson.id);
+          });
+
+          // Drag & drop
+          lessonEl.addEventListener("dragstart", (e) => {
+            lessonEl.classList.add("dragging");
+            e.dataTransfer.setData("text/plain", JSON.stringify({
+              fromUnitId: unit.id,
+              lessonId: lesson.id
+            }));
+            e.dataTransfer.effectAllowed = "move";
+          });
+          lessonEl.addEventListener("dragend", () => {
+            lessonEl.classList.remove("dragging");
+            document.querySelectorAll(".lessonList").forEach(x => x.classList.remove("dropHint"));
+          });
+
+          list.appendChild(lessonEl);
+        });
+
+        // Empty hint
+        if((unit.lessons || []).length === 0){
+          const empty = document.createElement("div");
+          empty.className = "tiny";
+          empty.style.padding = "10px";
+          empty.textContent = "No lessons yet. Click + LESSON to add one.";
+          list.appendChild(empty);
+        }
+
+        // List DnD events
+        list.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          list.classList.add("dropHint");
+          e.dataTransfer.dropEffect = "move";
+        });
+        list.addEventListener("dragleave", () => list.classList.remove("dropHint"));
+        list.addEventListener("drop", (e) => {
+          e.preventDefault();
+          list.classList.remove("dropHint");
+          const payload = safeParse(e.dataTransfer.getData("text/plain"));
+          if(!payload) return;
+          moveLesson(payload.fromUnitId, payload.lessonId, unit.id, getDropIndex(list, e.clientY));
+        });
+
+        // Unit click
+        unitEl.querySelector(".unitHd").addEventListener("click", (e) => {
+          const btn = e.target.closest("button");
+          if(btn) return;
+          setSelected("unit", unit.id, null);
+        });
+
+        grid.appendChild(unitEl);
+      });
+
+      // action buttons (delegated)
+      grid.querySelectorAll("button[data-act]").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          const act = btn.dataset.act;
+          const unitId = btn.dataset.unit;
+          const lessonId = btn.dataset.lesson;
+          if(act === "selectUnit") return setSelected("unit", unitId, null);
+          if(act === "selectLesson") return setSelected("lesson", unitId, lessonId);
+          if(act === "toggleDone") return toggleDone(unitId, lessonId);
+          if(act === "unitUp") return moveUnit(unitId, -1);
+          if(act === "unitDown") return moveUnit(unitId, +1);
+        });
+      });
+    }
+
+    function renderResourcesInline(lesson){
+      const res = Array.isArray(lesson.resources) ? lesson.resources : [];
+      if(res.length === 0) return "";
+      const items = res.slice(0,3).map(r => {
+        const label = escapeHtml(r.label || "Resource");
+        const url = escapeHtml(r.url || "");
+        return url ? `<a href="${url}" target="_blank" rel="noopener" class="chip" style="text-decoration:none;">${label}</a>`
+                   : `<span class="chip">${label}</span>`;
+      }).join("");
+      const more = res.length > 3 ? `<span class="chip">+${res.length-3}</span>` : "";
+      return `<div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">${items}${more}</div>`;
+    }
+
+    function safeParse(s){
+      try{ return JSON.parse(s); }catch{ return null; }
+    }
+
+    function getDropIndex(listEl, clientY){
+      const items = [...listEl.querySelectorAll(".lesson")].filter(x => !x.classList.contains("dragging"));
+      if(items.length === 0) return 0;
+      let idx = items.length;
+      for(let i=0;i<items.length;i++){
+        const r = items[i].getBoundingClientRect();
+        const mid = r.top + r.height/2;
+        if(clientY < mid){ idx = i; break; }
+      }
+      return idx;
+    }
+
+    /*********************
+     * EDITOR RENDER
+     *********************/
+    function renderEditor(){
+      const pane = document.getElementById("editorPane");
+      pane.innerHTML = "";
+
+      if(!selected.type){
+        pane.innerHTML = `<div class="tiny">Click a Unit or Lesson to edit it. Everything is customizable.</div>`;
+        return;
+      }
+
+      if(selected.type === "unit"){
+        const u = getUnit(selected.unitId);
+        if(!u){ setSelected(null); return; }
+
+        pane.innerHTML = `
+          <label>Unit Title</label>
+          <input id="uTitle" type="text" value="${escapeHtml(u.title)}" />
+
+          <label>Unit Tag (small label)</label>
+          <input id="uTag" type="text" value="${escapeHtml(u.tag || "")}" placeholder="e.g., START / CORE / ADVANCED" />
+
+          <label>Unit Description</label>
+          <textarea id="uDesc">${escapeHtml(u.description || "")}</textarea>
+
+          <div class="row">
+            <button class="accent" id="uAddLesson">+ LESSON</button>
+            <button id="uSelectNone">DONE</button>
+          </div>
+
+          <div class="tiny">Use ↑/↓ on the unit card to reorder units. Lessons can be reordered by dragging.</div>
+        `;
+
+        pane.querySelector("#uTitle").addEventListener("input", (e)=>{ u.title = e.target.value; saveStateSoon(); render(); });
+        pane.querySelector("#uTag").addEventListener("input", (e)=>{ u.tag = e.target.value; saveStateSoon(); render(); });
+        pane.querySelector("#uDesc").addEventListener("input", (e)=>{ u.description = e.target.value; saveStateSoon(); render(); });
+
+        pane.querySelector("#uAddLesson").addEventListener("click", ()=> addLesson(selected.unitId));
+        pane.querySelector("#uSelectNone").addEventListener("click", ()=> setSelected(null));
+
+        return;
+      }
+
+      if(selected.type === "lesson"){
+        const l = getLesson(selected.unitId, selected.lessonId);
+        const u = getUnit(selected.unitId);
+        if(!l || !u){ setSelected(null); return; }
+
+        pane.innerHTML = `
+          <div class="badge" style="display:inline-block;margin-bottom:10px;">IN: ${escapeHtml(u.title)}</div>
+
+          <label>Lesson Title</label>
+          <input id="lTitle" type="text" value="${escapeHtml(l.title)}" />
+
+          <label>Lesson Description</label>
+          <textarea id="lDesc">${escapeHtml(l.description || "")}</textarea>
+
+          <div class="row">
+            <div>
+              <label>Duration (minutes)</label>
+              <input id="lDur" type="number" min="0" step="1" value="${Number(l.durationMin||0)}" />
+            </div>
+            <div>
+              <label>Status</label>
+              <select id="lStatus">
+                <option value="todo">TODO</option>
+                <option value="done">DONE</option>
+                <option value="skip">SKIP</option>
+              </select>
+            </div>
+          </div>
+
+          <label>Resources (one per line: Label | URL)</label>
+          <textarea id="lRes" placeholder="Cheatsheet | https://...&#10;Video | https://..."></textarea>
+
+          <div class="row">
+            <button class="accent" id="lSaveRes">APPLY RESOURCES</button>
+            <button id="lSelectNone">DONE</button>
+          </div>
+
+          <div class="tiny">Tip: Toggle completion quickly using ✓ on the lesson card.</div>
+        `;
+
+        const sel = pane.querySelector("#lStatus");
+        sel.value = l.status || "todo";
+
+        pane.querySelector("#lTitle").addEventListener("input", (e)=>{ l.title = e.target.value; saveStateSoon(); render(); });
+        pane.querySelector("#lDesc").addEventListener("input", (e)=>{ l.description = e.target.value; saveStateSoon(); render(); });
+        pane.querySelector("#lDur").addEventListener("input", (e)=>{ l.durationMin = Number(e.target.value||0); saveStateSoon(); render(); });
+        pane.querySelector("#lStatus").addEventListener("change", (e)=>{ l.status = e.target.value; saveStateSoon(); render(); });
+
+        // resources text area preset
+        const res = Array.isArray(l.resources) ? l.resources : [];
+        pane.querySelector("#lRes").value = res.map(r => `${r.label||""} | ${r.url||""}`.trim()).join("\n");
+
+        pane.querySelector("#lSaveRes").addEventListener("click", ()=>{
+          const lines = pane.querySelector("#lRes").value.split("\n").map(x=>x.trim()).filter(Boolean);
+          l.resources = lines.map(line=>{
+            const parts = line.split("|").map(p=>p.trim());
+            return { label: parts[0] || "Resource", url: parts[1] || "" };
+          });
+          saveStateSoon();
+          render();
+        });
+
+        pane.querySelector("#lSelectNone").addEventListener("click", ()=> setSelected(null));
+        return;
+      }
+    }
+
+    /*********************
+     * MUTATIONS
+     *********************/
+    function addUnit(){
+      const n = state.units.length + 1;
+      const newUnit = {
+        id: uid(),
+        title: `UNIT ${n}: NEW UNIT`,
+        description: "Describe this unit…",
+        tag: "NEW",
+        lessons: []
+      };
+      state.units.push(newUnit);
+      saveStateSoon();
+      setSelected("unit", newUnit.id, null);
+    }
+
+    function addLesson(unitId){
+      const u = getUnit(unitId) || state.units[0];
+      if(!u) return;
+      const n = (u.lessons?.length||0) + 1;
+      const newLesson = {
+        id: uid(),
+        title: `Lesson ${n}: New Lesson`,
+        description: "Describe this lesson…",
+        durationMin: 10,
+        status: "todo",
+        resources: []
+      };
+      u.lessons = u.lessons || [];
+      u.lessons.push(newLesson);
+      saveStateSoon();
+      setSelected("lesson", u.id, newLesson.id);
+    }
+
+    function deleteSelected(){
+      if(!selected.type) return;
+
+      if(selected.type === "lesson"){
+        const u = getUnit(selected.unitId);
+        if(!u) return;
+        u.lessons = (u.lessons||[]).filter(l => l.id !== selected.lessonId);
+        saveStateSoon();
+        setSelected(null);
+        return;
+      }
+
+      if(selected.type === "unit"){
+        state.units = state.units.filter(u => u.id !== selected.unitId);
+        if(state.units.length === 0) state.units = defaultState().units;
+        saveStateSoon();
+        setSelected(null);
+        return;
+      }
+    }
+
+    function duplicateSelected(){
+      if(!selected.type) return;
+
+      if(selected.type === "lesson"){
+        const u = getUnit(selected.unitId);
+        const l = getLesson(selected.unitId, selected.lessonId);
+        if(!u || !l) return;
+        const copy = structuredClone(l);
+        copy.id = uid();
+        copy.title = (copy.title || "Lesson") + " (COPY)";
+        u.lessons.splice(u.lessons.findIndex(x=>x.id===l.id)+1, 0, copy);
+        saveStateSoon();
+        setSelected("lesson", u.id, copy.id);
+        return;
+      }
+
+      if(selected.type === "unit"){
+        const u = getUnit(selected.unitId);
+        if(!u) return;
+        const copy = structuredClone(u);
+        copy.id = uid();
+        copy.title = (copy.title || "UNIT") + " (COPY)";
+        copy.lessons = (copy.lessons||[]).map(l => ({...l, id: uid()}));
+        state.units.splice(state.units.findIndex(x=>x.id===u.id)+1, 0, copy);
+        saveStateSoon();
+        setSelected("unit", copy.id, null);
+        return;
+      }
+    }
+
+    function toggleDone(unitId, lessonId){
+      const l = getLesson(unitId, lessonId);
+      if(!l) return;
+      l.status = (l.status === "done") ? "todo" : "done";
+      saveStateSoon();
+      render();
+    }
+
+    function moveUnit(unitId, dir){
+      const idx = state.units.findIndex(u => u.id === unitId);
+      if(idx < 0) return;
+      const next = idx + dir;
+      if(next < 0 || next >= state.units.length) return;
+      const [u] = state.units.splice(idx, 1);
+      state.units.splice(next, 0, u);
+      saveStateSoon();
+      render();
+    }
+
+    function moveLesson(fromUnitId, lessonId, toUnitId, toIndex){
+      const fromU = getUnit(fromUnitId);
+      const toU = getUnit(toUnitId);
+      if(!fromU || !toU) return;
+
+      const fromIdx = (fromU.lessons||[]).findIndex(l => l.id === lessonId);
+      if(fromIdx < 0) return;
+
+      const [lesson] = fromU.lessons.splice(fromIdx, 1);
+      toU.lessons = toU.lessons || [];
+
+      // if moving within same unit and removing earlier shifts index
+      if(fromUnitId === toUnitId && fromIdx < toIndex) toIndex -= 1;
+      toIndex = Math.max(0, Math.min(toIndex, toU.lessons.length));
+
+      toU.lessons.splice(toIndex, 0, lesson);
+
+      saveStateSoon();
+      // keep selection
+      if(selected.type === "lesson" && selected.lessonId === lessonId){
+        selected.unitId = toUnitId;
+      }
+      render();
+    }
+
+    /*********************
+     * IMPORT / EXPORT
+     *********************/
+    function exportJSON(){
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type:"application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "learning-path.json";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    async function importJSON(){
+      const raw = prompt("Paste JSON here to import (this will overwrite the current path):");
+      if(!raw) return;
+      try{
+        const parsed = JSON.parse(raw);
+        if(!parsed?.meta?.theme || !Array.isArray(parsed?.units)) throw new Error("Invalid format");
+        state = parsed;
+        saveStateSoon();
+        setSelected(null);
+        render();
+      }catch(e){
+        alert("Could not import JSON. Make sure it matches the exported structure.");
+      }
+    }
+
+    function resetAll(){
+      if(!confirm("Reset everything to the default template?")) return;
+      state = defaultState();
+      localStorage.removeItem(STORAGE_KEY);
+      saveStateSoon();
+      setSelected(null);
+      render();
+    }
+
+    /*********************
+     * WIRE UP CONTROLS
+     *********************/
+    function wireControls(){
+      // meta
+      document.getElementById("pathTitle").addEventListener("input", (e)=>{
+        state.meta.title = e.target.value;
+        saveStateSoon(); render();
+      });
+      document.getElementById("pathSubtitle").addEventListener("input", (e)=>{
+        state.meta.subtitle = e.target.value;
+        saveStateSoon(); render();
+      });
+
+      // theme
+      const bindColor = (id, key) => {
+        document.getElementById(id).addEventListener("input", (e)=>{
+          state.meta.theme[key] = e.target.value;
+          saveStateSoon(); render();
+        });
+      };
+      bindColor("cPrimary","primary");
+      bindColor("cAccent","accent");
+      bindColor("cBg","bg");
+      bindColor("cPanel","panel");
+      bindColor("cText","text");
+      bindColor("cBorder","border");
+
+      // add / delete / duplicate
+      document.getElementById("addUnitBtn").addEventListener("click", addUnit);
+      document.getElementById("addLessonBtn").addEventListener("click", ()=>{
+        const targetUnit = selected.type === "unit" ? selected.unitId :
+                           selected.type === "lesson" ? selected.unitId :
+                           (state.units[0]?.id);
+        if(targetUnit) addLesson(targetUnit);
+      });
+      document.getElementById("deleteBtn").addEventListener("click", deleteSelected);
+      document.getElementById("duplicateBtn").addEventListener("click", duplicateSelected);
+
+      // import/export/reset
+      document.getElementById("exportBtn").addEventListener("click", exportJSON);
+      document.getElementById("importBtn").addEventListener("click", importJSON);
+      document.getElementById("resetBtn").addEventListener("click", resetAll);
+
+      // small reset button (extra)
+      document.getElementById("resetBtn").addEventListener("click", resetAll);
+      document.getElementById("resetBtn").title = "Reset to default";
+
+      // importBtn alias
+      document.getElementById("importBtn").title = "Paste JSON to import";
+    }
+
+    /*********************
+     * INIT
+     *********************/
+    applyTheme();
+    wireControls();
+    render();
+    renderEditor();
+  </script>
+</body>
+</html>
