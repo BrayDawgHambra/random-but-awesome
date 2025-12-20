@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customizable Learning Path</title>
+  <!-- Include Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Silkscreen&display=swap" rel="stylesheet">
+  <style>
+    /* Global Styles */
+    :root {
+      --primary-color: #3498db; /* Customizable */
+      --secondary-color: #2ecc71; /* Customizable */
+      --background-color: #f9f9f9; /* Customizable */
+      --text-color: #333; /* Customizable */
+      --border-color: #ddd;
+    }
+    body {
+      background-color: var(--background-color);
+      color: var(--text-color);
+      font-family: 'Silkscreen', cursive; /* Apply Silkscreen Font */
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 20px;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+    main {
+      padding: 20px;
+    }
+    .unit {
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 20px;
+    }
+    .unit h2 {
+      color: var(--secondary-color);
+      margin: 0 0 10px;
+    }
+    .lesson {
+      margin: 15px 0;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 10px;
+      background: #fff;
+    }
+    .lesson h3 {
+      margin: 0 0 10px;
+    }
+    .lesson-content {
+      display: none;
+    }
+    .lesson-content.active {
+      display: block;
+    }
+    button {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-family: 'Silkscreen', cursive; /* Apply Silkscreen Font to Buttons */
+    }
+    button:hover {
+      background-color: var(--secondary-color);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Customizable Learning Path</h1>
+</header>
+
+<main>
+  <!-- Unit 1 -->
+  <div class="unit" data-unit="1">
+    <h2>Unit 1: Basics of Programming</h2>
+    <p>Description: This unit introduces the fundamental concepts of programming.</p>
+
+    <div class="lesson" data-lesson="1-1">
+      <h3>Lesson 1: What is Programming?</h3>
+      <button onclick="toggleLessonContent('1-1')">View Content</button>
+      <div class="lesson-content" id="lesson-1-1">
+        <p>Programming is a way to communicate with computers and make them perform tasks.</p>
+        <video controls width="100%">
+          <source src="example-video-url.mp4" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+      </div>
+    </div>
+
+    <div class="lesson" data-lesson="1-2">
+      <h3>Lesson 2: Setting Up Your Environment</h3>
+      <button onclick="toggleLessonContent('1-2')">View Content</button>
+      <div class="lesson-content" id="lesson-1-2">
+        <p>Download and install a code editor, like Visual Studio Code, to write and run your programs.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unit 2 -->
+  <div class="unit" data-unit="2">
+    <h2>Unit 2: Advanced Concepts</h2>
+    <p>Description: Dive deeper into programming with intermediate and advanced topics.</p>
+
+    <div class="lesson" data-lesson="2-1">
+      <h3>Lesson 1: Understanding Variables</h3>
+      <button onclick="toggleLessonContent('2-1')">View Content</button>
+      <div class="lesson-content" id="lesson-2-1">
+        <p>Variables are used to store data in memory for later use.</p>
+        <p>Examples:</p>
+        <code>
+          let a = 10;<br>
+          let b = "Hello, World!";
+        </code>
+      </div>
+    </div>
+
+    <div class="lesson" data-lesson="2-2">
+      <h3>Lesson 2: Control Flow</h3>
+      <button onclick="toggleLessonContent('2-2')">View Content</button>
+      <div class="lesson-content" id="lesson-2-2">
+        <p>Control flow uses if-else statements and loops to control the sequence of execution.</p>
+        <p>Example:</p>
+        <code>
+          if (a > 10) {<br>
+            console.log("a is greater than 10.");<br>
+          }
+        </code>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+  // Function to toggle lesson content visibility
+  function toggleLessonContent(lessonId) {
+    const content = document.getElementById('lesson-' + lessonId);
+    if (content.classList.contains('active')) {
+      content.classList.remove('active');
+    } else {
+      content.classList.add('active');
+    }
+  }
+
+  // Example of customization: Change theme colors dynamically
+  function customizeTheme(primary, secondary, background, text) {
+    const root = document.documentElement;
+    root.style.setProperty('--primary-color', primary);
+    root.style.setProperty('--secondary-color', secondary);
+    root.style.setProperty('--background-color', background);
+    root.style.setProperty('--text-color', text);
+  }
+
+  // Example customization: Change theme dynamically
+  // customizeTheme('#e74c3c', '#8e44ad', '#f5f5f5', '#000');
+</script>
+
+</body>
+</html>
